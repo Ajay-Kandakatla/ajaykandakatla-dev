@@ -1,42 +1,1333 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
-
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf())
-  .slice(0, 5);
+const canonical = new URL('/', Astro.site).toString();
+const ogImage = new URL('/og-default.png', Astro.site).toString();
+const description = 'Ajay Kandakatla — Architect Manager at Synchrony. Twelve years of frontend engineering across eight cities and six companies. From Hyderabad to Dallas: a journey through React, TypeScript, AWS, and team leadership.';
+const personJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Ajay Kandakatla',
+  jobTitle: 'Architect Manager',
+  worksFor: { '@type': 'Organization', name: 'Synchrony' },
+  url: canonical,
+  sameAs: [
+    'https://github.com/Ajay-Kandakatla',
+    'https://medium.com/@ajaykandakatla',
+  ],
+};
 ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajay Kandakatla — Architect Manager | Frontend Engineering Leader</title>
+<meta name="description" content={description}>
+<link rel="canonical" href={canonical}>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate" type="application/rss+xml" title="Ajay Kandakatla" href="/rss.xml">
+<link rel="sitemap" href="/sitemap-index.xml">
+<meta property="og:title" content="Ajay Kandakatla — Architect Manager">
+<meta property="og:type" content="website">
+<meta property="og:url" content={canonical}>
+<meta property="og:description" content={description}>
+<meta property="og:site_name" content="Ajay Kandakatla">
+<meta property="og:image" content={ogImage}>
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@ajaykandakatla">
+<script type="application/ld+json" is:inline set:html={JSON.stringify(personJsonLd)}></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style is:inline>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0a;--gold:#f59e0b;--teal:#06b6d4;--text:#e5e7eb;--muted:#9ca3af;--card:#111111;--card-border:#1f1f1f}
+html{scroll-snap-type:y proximity;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+.mono{font-family:'Space Mono',monospace}
+canvas{display:block}
 
-<BaseLayout
-  title="Ajay Kandakatla — Architect Manager, Frontend Engineer"
-  description="Architect Manager at Synchrony. Twelve years of frontend engineering across eight cities. Notes on software, systems, and shipping."
->
-  <main class="mx-auto max-w-2xl px-6 py-12">
-    <section>
-      <h1 class="text-4xl font-bold tracking-tight">Ajay Kandakatla</h1>
-      <p class="mt-4 text-zinc-300 leading-relaxed">
-        Architect Manager at Synchrony. Twelve years of frontend engineering across eight cities and six companies. I write about software, systems, and the gap between architecture diagrams and what actually ships.
-      </p>
-    </section>
+/* Progress Bar */
+#progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--teal));z-index:1000;width:0;transition:width 0.05s linear}
 
-    <section class="mt-16">
-      <div class="flex items-baseline justify-between">
-        <h2 class="text-xl font-semibold">Latest writing</h2>
-        <a href="/blog/" class="text-sm text-zinc-400 hover:text-zinc-100">All posts →</a>
+/* Navigation */
+#nav{position:fixed;top:0;left:0;right:0;z-index:999;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,10,0.85);backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color 0.3s}
+#nav.scrolled{border-bottom-color:var(--card-border)}
+.nav-logo{font-family:'Space Mono',monospace;font-size:1.25rem;font-weight:700;color:var(--gold);text-decoration:none;letter-spacing:2px}
+.nav-links{display:flex;gap:2rem;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:0.85rem;font-weight:500;letter-spacing:1px;text-transform:uppercase;transition:color 0.3s}
+.nav-links a:hover,.nav-links a.active{color:var(--gold)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px}
+.hamburger span{width:24px;height:2px;background:var(--text);transition:all 0.3s}
+.mobile-menu{display:none;position:fixed;top:60px;left:0;right:0;background:rgba(10,10,10,0.97);padding:2rem;z-index:998}
+.mobile-menu.open{display:flex;flex-direction:column;gap:1.5rem;align-items:center}
+.mobile-menu a{color:var(--muted);text-decoration:none;font-size:1rem;font-weight:500;letter-spacing:1px;text-transform:uppercase}
+
+/* Right Minimap */
+#minimap{position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);z-index:997;display:flex;flex-direction:column;gap:1rem;align-items:center}
+.minimap-dot{width:8px;height:8px;border-radius:50%;background:var(--card-border);cursor:pointer;transition:all 0.3s;position:relative}
+.minimap-dot.active{background:var(--gold);width:12px;height:12px;box-shadow:0 0 10px var(--gold)}
+.minimap-dot:hover::before{content:attr(data-label);position:absolute;right:24px;top:50%;transform:translateY(-50%);background:var(--card);color:var(--text);padding:4px 10px;border-radius:4px;font-size:0.7rem;white-space:nowrap;border:1px solid var(--card-border)}
+
+/* Mini Map Overlay */
+#mini-map-overlay{position:fixed;bottom:1.5rem;right:1.5rem;width:200px;height:120px;background:rgba(17,17,17,0.9);border:1px solid var(--card-border);border-radius:8px;z-index:996;opacity:0;transition:opacity 0.5s;padding:8px;pointer-events:none}
+#mini-map-overlay.visible{opacity:1}
+#mini-map-overlay svg{width:100%;height:100%}
+
+/* Section base */
+.section{min-height:100vh;scroll-snap-align:start;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+/* HERO */
+#hero{flex-direction:column;padding:2rem}
+#hero-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0}
+.hero-content{position:relative;z-index:2;text-align:center;max-width:900px}
+.hero-name{font-size:clamp(2.5rem,6vw,5rem);font-weight:900;letter-spacing:-2px;margin-bottom:0.5rem;overflow:hidden;perspective:600px}
+.hero-name .letter{display:inline-block;opacity:0;transform:rotateX(90deg);transition:all 0.6s cubic-bezier(0.16,1,0.3,1)}
+.hero-name .letter.revealed{opacity:1;transform:rotateX(0)}
+.hero-name .letter.space{width:0.3em}
+.hero-subtitle{font-family:'Space Mono',monospace;font-size:clamp(0.85rem,1.5vw,1.1rem);color:var(--teal);margin-bottom:1rem;opacity:0;transform:translateY(20px);transition:all 0.8s 1s}
+.hero-subtitle.visible{opacity:1;transform:translateY(0)}
+.hero-tagline{font-size:clamp(0.9rem,1.8vw,1.2rem);color:var(--muted);margin-bottom:2.5rem;opacity:0;transform:translateY(20px);transition:all 0.8s 1.3s}
+.hero-tagline.visible{opacity:1;transform:translateY(0)}
+.hero-counters{display:flex;justify-content:center;gap:3rem;margin-bottom:2.5rem;opacity:0;transform:translateY(20px);transition:all 0.8s 1.5s;flex-wrap:wrap}
+.hero-counters.visible{opacity:1;transform:translateY(0)}
+.counter-item{text-align:center}
+.counter-value{font-size:clamp(2rem,4vw,3rem);font-weight:900;color:var(--gold);font-family:'Space Mono',monospace}
+.counter-label{font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:0.25rem}
+.hero-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;opacity:0;transform:translateY(20px);transition:all 0.8s 1.7s}
+.hero-buttons.visible{opacity:1;transform:translateY(0)}
+.btn-primary{background:var(--gold);color:#000;padding:0.85rem 2rem;border:none;border-radius:6px;font-weight:700;font-size:0.9rem;cursor:pointer;transition:all 0.3s;text-decoration:none;letter-spacing:0.5px}
+.btn-primary:hover{background:#fbbf24;transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.3)}
+.btn-outline{background:transparent;color:var(--text);padding:0.85rem 2rem;border:1px solid var(--card-border);border-radius:6px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:all 0.3s;text-decoration:none}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
+.hero-badge{display:inline-flex;align-items:center;gap:0.5rem;margin-top:2rem;padding:0.4rem 1rem;border-radius:20px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);font-size:0.75rem;color:#4ade80;opacity:0;transition:all 0.8s 2s}
+.hero-badge.visible{opacity:1}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.5)}}
+.scroll-indicator{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:0.5rem;opacity:0;transition:all 0.8s 2.2s}
+.scroll-indicator.visible{opacity:1}
+.mouse-icon{width:24px;height:38px;border:2px solid var(--muted);border-radius:12px;position:relative}
+.mouse-wheel{width:3px;height:8px;background:var(--gold);border-radius:2px;position:absolute;top:6px;left:50%;transform:translateX(-50%);animation:scrollWheel 2s ease-in-out infinite}
+@keyframes scrollWheel{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(12px)}}
+.scroll-text{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px}
+
+/* MAP */
+#map-section{background:var(--bg);flex-direction:column;padding:2rem}
+.map-title{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:800;margin-bottom:0.5rem;text-align:center}
+.map-subtitle{color:var(--muted);margin-bottom:2rem;text-align:center;font-size:0.9rem}
+#map-container{width:100%;max-width:1000px;position:relative}
+#map-container svg{width:100%;height:auto}
+.us-state{fill:#1a1a1a;stroke:#2a2a2a;stroke-width:1;stroke-linejoin:round;transition:fill 0.4s}
+.us-state:hover{fill:#222}
+.career-st{fill:#1e2a1e;stroke:#2a2a2a;stroke-width:1}
+.career-st:hover{fill:#263026}
+.map-city{cursor:pointer;transition:all 0.3s}
+.map-city circle{transition:all 0.5s}
+.map-city.active circle{fill:var(--gold);filter:drop-shadow(0 0 8px rgba(245,158,11,0.6))}
+.map-city text{fill:var(--muted);font-size:10px;font-family:'Inter',sans-serif;transition:fill 0.3s;pointer-events:none}
+.map-city.active text{fill:var(--gold)}
+#route-path{stroke:var(--gold);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(245,158,11,0.4))}
+.mini-state{fill:#222;stroke:#333;stroke-width:0.3}
+
+/* CHAPTERS */
+.chapter{flex-direction:column;padding:6rem 2rem 4rem;position:relative}
+.chapter-inner{max-width:800px;width:100%;position:relative;z-index:2}
+.chapter-location{font-size:clamp(0.8rem,1.2vw,1rem);color:var(--muted);text-transform:uppercase;letter-spacing:3px;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;opacity:0;transform:translateX(-40px);transition:all 0.7s cubic-bezier(0.16,1,0.3,1)}
+.chapter-location.revealed{opacity:1;transform:translateX(0)}
+.chapter-badge{display:inline-flex;align-items:center;padding:0.4rem 1rem;border-radius:6px;font-size:0.8rem;font-weight:700;letter-spacing:1px;margin-bottom:1rem;opacity:0;transform:translateX(40px);transition:all 0.7s 0.15s cubic-bezier(0.16,1,0.3,1)}
+.chapter-badge.revealed{opacity:1;transform:translateX(0)}
+.chapter-role{font-size:clamp(1.8rem,4vw,3rem);font-weight:900;letter-spacing:-1px;margin-bottom:0.5rem;opacity:0;transform:translateY(30px);transition:all 0.7s 0.3s cubic-bezier(0.16,1,0.3,1)}
+.chapter-role.revealed{opacity:1;transform:translateY(0)}
+.chapter-dates{font-family:'Space Mono',monospace;font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem;opacity:0;transition:all 0.7s 0.4s}
+.chapter-dates.revealed{opacity:1}
+.chapter-narrative{font-family:'Space Mono',monospace;font-size:clamp(0.8rem,1.2vw,1rem);color:var(--gold);margin-bottom:1.5rem;min-height:1.5em;border-left:2px solid var(--gold);padding-left:1rem}
+.typewriter-cursor{animation:blink 0.8s step-end infinite;color:var(--gold)}
+@keyframes blink{50%{opacity:0}}
+.chapter-desc{font-size:1rem;color:var(--muted);line-height:1.8;margin-bottom:2rem;opacity:0;transform:translateY(20px);transition:all 0.7s 0.5s}
+.chapter-desc.revealed{opacity:1;transform:translateY(0)}
+.chapter-skills{display:flex;flex-wrap:wrap;gap:0.5rem;opacity:0;transition:all 0.7s 0.6s}
+.chapter-skills.revealed{opacity:1}
+.skill-tag{padding:0.3rem 0.75rem;border-radius:4px;font-size:0.75rem;font-weight:600;background:rgba(6,182,212,0.1);color:var(--teal);border:1px solid rgba(6,182,212,0.2);opacity:0;transform:translateY(10px);transition:all 0.4s}
+.skill-tag.visible{opacity:1;transform:translateY(0)}
+.sync-timeline{margin-top:2rem;padding-left:1.5rem;border-left:2px solid #e31837;display:flex;flex-direction:column;gap:1.5rem}
+.sync-item{position:relative}
+.sync-item::before{content:'';position:absolute;left:-1.95rem;top:0.35rem;width:10px;height:10px;border-radius:50%;background:#e31837;border:2px solid var(--bg)}
+.sync-item h4{font-size:1rem;font-weight:700;margin-bottom:0.15rem}
+.sync-item .sync-dates{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);margin-bottom:0.3rem}
+.sync-item p{font-size:0.85rem;color:var(--muted)}
+
+/* SKILLS */
+#skills{flex-direction:column;padding:6rem 2rem}
+.skills-title{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:800;margin-bottom:0.5rem;text-align:center}
+.skills-subtitle{color:var(--muted);margin-bottom:3rem;text-align:center;font-size:0.9rem}
+.skills-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;max-width:1000px;width:100%;margin-bottom:3rem}
+.skill-card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:1.5rem;opacity:0;transform:translateY(30px);transition:all 0.6s}
+.skill-card.visible{opacity:1;transform:translateY(0)}
+.skill-card h3{font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem}
+.skill-bar-item{margin-bottom:1rem}
+.skill-bar-label{display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.35rem}
+.skill-bar-label span:last-child{font-family:'Space Mono',monospace;color:var(--gold)}
+.skill-bar-track{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden}
+.skill-bar-fill{height:100%;border-radius:3px;width:0;transition:width 1.5s cubic-bezier(0.16,1,0.3,1)}
+.tags-cloud{display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center;max-width:900px}
+.tags-cloud .skill-tag{font-size:0.8rem;padding:0.4rem 1rem;cursor:default}
+
+/* BEYOND */
+#beyond{flex-direction:column;padding:6rem 2rem}
+.beyond-title{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:800;margin-bottom:2.5rem;text-align:center}
+.beyond-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.5rem;max-width:900px;width:100%}
+.beyond-card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:2rem;opacity:0;transform:translateY(30px);transition:all 0.6s}
+.beyond-card.visible{opacity:1;transform:translateY(0)}
+.beyond-card h3{font-size:1.3rem;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem}
+.beyond-card .badge-sm{display:inline-block;padding:0.2rem 0.6rem;border-radius:4px;font-size:0.7rem;font-weight:700;background:rgba(245,158,11,0.15);color:var(--gold);margin-bottom:0.75rem}
+.beyond-card p{color:var(--muted);font-size:0.9rem;margin-bottom:1rem;line-height:1.7}
+.beyond-highlights{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem}
+.beyond-highlights span{padding:0.25rem 0.6rem;border-radius:4px;font-size:0.7rem;font-weight:600;background:rgba(6,182,212,0.1);color:var(--teal);border:1px solid rgba(6,182,212,0.15)}
+#volleyball-canvas{border-radius:8px;background:rgba(0,0,0,0.3);margin-top:0.5rem;width:100%;max-width:220px;height:150px}
+.blog-link{display:inline-flex;align-items:center;gap:0.5rem;color:var(--teal);text-decoration:none;font-weight:600;font-size:0.9rem;transition:color 0.3s}
+.blog-link:hover{color:var(--gold)}
+
+/* AI PROJECTS */
+#ai-projects{flex-direction:column;padding:6rem 2rem}
+.ai-title{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:800;margin-bottom:0.5rem;text-align:center}
+.ai-subtitle{color:var(--muted);margin-bottom:2.5rem;text-align:center;font-size:0.95rem;max-width:700px}
+.ai-subtitle strong{color:var(--gold)}
+.ai-badge{display:inline-flex;align-items:center;gap:0.5rem;padding:0.35rem 1rem;border-radius:20px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);font-size:0.75rem;color:#a78bfa;margin-bottom:1.5rem;font-weight:600;letter-spacing:0.5px}
+.ai-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;max-width:1100px;width:100%}
+.ai-card{background:var(--card);border:1px solid var(--card-border);border-radius:12px;padding:1.75rem;opacity:0;transform:translateY(30px);transition:all 0.6s;position:relative;overflow:hidden}
+.ai-card.visible{opacity:1;transform:translateY(0)}
+.ai-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.ai-card:nth-child(1)::before{background:linear-gradient(90deg,var(--gold),#fbbf24)}
+.ai-card:nth-child(2)::before{background:linear-gradient(90deg,#6b9fdb,#9b8acc)}
+.ai-card:nth-child(3)::before{background:linear-gradient(90deg,#e31837,#ff6b6b)}
+.ai-card:nth-child(4)::before{background:linear-gradient(90deg,#06b6d4,#22d3ee)}
+.ai-card h3{font-size:1.15rem;font-weight:700;margin-bottom:0.25rem;display:flex;align-items:center;gap:0.5rem}
+.ai-card .ai-card-type{font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.75rem}
+.ai-card p{color:var(--muted);font-size:0.85rem;margin-bottom:1rem;line-height:1.7}
+.ai-card-tech{display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem}
+.ai-card-tech span{padding:0.2rem 0.55rem;border-radius:4px;font-size:0.65rem;font-weight:600;background:rgba(6,182,212,0.1);color:var(--teal);border:1px solid rgba(6,182,212,0.15)}
+.ai-card-links{display:flex;gap:0.75rem;flex-wrap:wrap}
+.ai-card-links a{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--gold);text-decoration:none;font-weight:600;transition:color 0.3s}
+.ai-card-links a:hover{color:#fbbf24}
+.ai-card-links a svg{width:14px;height:14px;fill:currentColor}
+.ai-powered-by{text-align:center;margin-top:2.5rem;padding:1.5rem 2rem;background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:12px;max-width:700px}
+.ai-powered-by h4{font-size:1rem;font-weight:700;margin-bottom:0.5rem;color:#a78bfa}
+.ai-powered-by p{color:var(--muted);font-size:0.85rem;line-height:1.7}
+.ai-powered-by strong{color:var(--text)}
+@media(max-width:768px){.ai-grid{grid-template-columns:1fr}}
+
+/* CONNECT */
+#connect{flex-direction:column;padding:6rem 2rem;text-align:center}
+.connect-title{font-size:clamp(1.5rem,3vw,2.5rem);font-weight:800;margin-bottom:1rem}
+.connect-desc{color:var(--muted);max-width:500px;margin-bottom:2.5rem;font-size:1rem;line-height:1.8}
+.connect-links{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:4rem}
+.connect-link{display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1.5rem;background:var(--card);border:1px solid var(--card-border);border-radius:8px;text-decoration:none;color:var(--text);font-weight:600;transition:all 0.3s}
+.connect-link:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,0.3)}
+.connect-link svg{width:20px;height:20px;fill:currentColor}
+.footer{padding:2rem;text-align:center;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--card-border);width:100%;margin-top:auto}
+
+/* Responsive */
+@media(max-width:768px){
+.nav-links{display:none}
+.hamburger{display:flex}
+.hero-counters{gap:1.5rem}
+#minimap{right:0.5rem;gap:0.7rem}
+.minimap-dot{width:6px;height:6px}
+.minimap-dot.active{width:10px;height:10px}
+#mini-map-overlay{width:150px;height:90px;bottom:1rem;right:1rem}
+.beyond-grid{grid-template-columns:1fr}
+.skills-grid{grid-template-columns:1fr}
+.sync-timeline{padding-left:1rem}
+}
+@media(max-width:480px){
+#nav{padding:0.75rem 1rem}
+.chapter{padding:5rem 1rem 3rem}
+.hero-counters{flex-direction:column;gap:1rem}
+#minimap{display:none}
+#mini-map-overlay{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<nav id="nav">
+  <a href="#hero" class="nav-logo">AK</a>
+  <ul class="nav-links">
+    <li><a href="#hero">Home</a></li>
+    <li><a href="#map-section">Journey</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#ai-projects">Projects</a></li>
+    <li><a href="/blog/">Blog</a></li>
+    <li><a href="#connect">Connect</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+</nav>
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#hero" onclick="closeMobile()">Home</a>
+  <a href="#map-section" onclick="closeMobile()">Journey</a>
+  <a href="#skills" onclick="closeMobile()">Skills</a>
+  <a href="#ai-projects" onclick="closeMobile()">Projects</a>
+  <a href="/blog/">Blog</a>
+  <a href="#connect" onclick="closeMobile()">Connect</a>
+</div>
+
+<div id="minimap">
+  <div class="minimap-dot active" data-label="Home" data-target="hero"></div>
+  <div class="minimap-dot" data-label="Map" data-target="map-section"></div>
+  <div class="minimap-dot" data-label="Wilmington" data-target="ch-wilm"></div>
+  <div class="minimap-dot" data-label="Orbit Health" data-target="ch-orbit"></div>
+  <div class="minimap-dot" data-label="State Street" data-target="ch-ss"></div>
+  <div class="minimap-dot" data-label="IBM" data-target="ch-ibm"></div>
+  <div class="minimap-dot" data-label="AT&T" data-target="ch-att"></div>
+  <div class="minimap-dot" data-label="Cisco" data-target="ch-cisco"></div>
+  <div class="minimap-dot" data-label="Stamford" data-target="ch-sync-stam"></div>
+  <div class="minimap-dot" data-label="Dallas" data-target="ch-sync-dal"></div>
+  <div class="minimap-dot" data-label="Skills" data-target="skills"></div>
+  <div class="minimap-dot" data-label="Beyond" data-target="beyond"></div>
+  <div class="minimap-dot" data-label="Projects" data-target="ai-projects"></div>
+  <div class="minimap-dot" data-label="Connect" data-target="connect"></div>
+</div>
+
+<div id="mini-map-overlay">
+  <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+    <path id="mini-route" d="M172,47 L174,42 L186,32 L121,49 L18,6 L10,63 L177,39 L88,75" stroke="#f59e0b" stroke-width="1.5" fill="none" stroke-dasharray="500" stroke-dashoffset="500" stroke-linecap="round" opacity="0.6"/>
+    <circle cx="172" cy="47" r="3" fill="#666" class="mini-city" data-idx="0"/>
+    <text x="172" y="57" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">DEL</text>
+    <circle cx="174" cy="42" r="3" fill="#666" class="mini-city" data-idx="1"/>
+    <text x="174" y="52" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">NJ</text>
+    <circle cx="186" cy="32" r="3" fill="#666" class="mini-city" data-idx="2"/>
+    <text x="186" y="42" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">BOS</text>
+    <circle cx="121" cy="49" r="3" fill="#666" class="mini-city" data-idx="3"/>
+    <text x="121" y="59" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">SCH</text>
+    <circle cx="18" cy="6" r="3" fill="#666" class="mini-city" data-idx="4"/>
+    <text x="18" y="16" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">BOT</text>
+    <circle cx="10" cy="63" r="3" fill="#666" class="mini-city" data-idx="5"/>
+    <text x="10" y="73" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">SJ</text>
+    <circle cx="177" cy="39" r="3" fill="#666" class="mini-city" data-idx="6"/>
+    <text x="177" y="34" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">STM</text>
+    <circle cx="88" cy="75" r="3" fill="#666" class="mini-city" data-idx="7"/>
+    <text x="88" y="85" fill="#666" font-size="5" text-anchor="middle" font-family="Inter">DAL</text>
+    <text id="mini-airplane" x="172" y="42" font-size="10" text-anchor="middle">&#9992;</text>
+  </svg>
+</div>
+
+<!-- HERO -->
+<section class="section" id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <h1 class="hero-name" id="hero-name"></h1>
+    <p class="hero-subtitle" id="hero-subtitle">Architect Manager @ Synchrony</p>
+    <p class="hero-tagline" id="hero-tagline">From Hyderabad to the World &mdash; A Frontend Engineering Journey</p>
+    <div class="hero-counters" id="hero-counters">
+      <div class="counter-item"><div class="counter-value" data-target="12">0</div><div class="counter-label">Years</div></div>
+      <div class="counter-item"><div class="counter-value" data-target="8">0</div><div class="counter-label">Cities</div></div>
+      <div class="counter-item"><div class="counter-value" data-target="6">0</div><div class="counter-label">Companies</div></div>
+    </div>
+    <div class="hero-buttons" id="hero-buttons">
+      <a href="#map-section" class="btn-primary">Explore My Journey</a>
+      <a href="#connect" class="btn-outline">Get in Touch</a>
+    </div>
+    <div class="hero-badge" id="hero-badge"><span class="pulse-dot"></span> Available for collaboration</div>
+  </div>
+  <div class="scroll-indicator" id="scroll-indicator">
+    <div class="mouse-icon"><div class="mouse-wheel"></div></div>
+    <span class="scroll-text">Scroll to explore</span>
+  </div>
+</section>
+
+<!-- MAP OVERVIEW -->
+<section class="section" id="map-section">
+  <div style="max-width:1000px;width:100%;padding:0 1rem">
+    <h2 class="map-title">The Journey Map</h2>
+    <p class="map-subtitle">Eight cities, six companies, one relentless pursuit of excellence</p>
+    <div id="map-container">
+<svg viewBox="0 0 960 590" xmlns="http://www.w3.org/2000/svg">
+<path class="us-state" id="FL" d="M 760,439 L 762,446 L 766,456 L 771,466 L 775,472 L 780,477 L 784,481 L 785,484 L 784,485 L 783,487 L 786,494 L 789,497 L 792,502 L 795,508 L 800,516 L 801,524 L 802,536 L 802,538 L 802,541 L 800,542 L 800,544 L 799,546 L 800,549 L 800,551 L 797,554 L 794,555 L 790,555 L 789,557 L 787,558 L 785,558 L 784,557 L 784,554 L 783,550 L 780,545 L 776,543 L 772,543 L 771,544 L 768,539 L 768,536 L 765,532 L 763,531 L 762,533 L 760,533 L 758,527 L 755,524 L 752,518 L 749,515 L 746,511 L 748,509 L 751,504 L 751,502 L 746,501 L 745,502 L 745,502 L 748,503 L 746,508 L 745,508 L 744,504 L 742,499 L 742,497 L 744,492 L 744,482 L 740,479 L 739,476 L 734,474 L 732,474 L 730,471 L 727,469 L 726,466 L 723,465 L 721,461 L 717,460 L 714,458 L 711,458 L 707,459 L 707,461 L 708,462 L 707,463 L 704,463 L 700,467 L 697,469 L 693,469 L 690,470 L 689,467 L 688,465 L 685,464 L 683,463 L 675,459 L 668,457 L 663,458 L 657,458 L 651,460 L 648,461 L 647,453 L 645,451 L 643,449 L 643,446 L 654,445 L 679,442 L 686,441 L 691,441 L 694,445 L 695,447 L 704,447 L 714,447 L 736,445 L 741,445 L 746,445 L 747,448 L 749,449 L 749,444 L 748,440 L 749,438 L 755,439 L 760,439 z M 772,572 L 775,571 L 776,571 L 778,568 L 780,567 L 781,567 L 783,568 L 783,569 L 780,570 L 776,571 L 773,572 L 772,572 z M 786,567 L 787,568 L 790,565 L 795,561 L 799,557 L 801,551 L 802,549 L 803,546 L 802,546 L 801,549 L 799,554 L 796,559 L 792,563 L 788,565 L 786,567 z"/>
+<path class="us-state" id="NH" d="M 881,142 L 882,141 L 883,138 L 880,137 L 880,134 L 876,133 L 876,130 L 868,107 L 864,92 L 863,92 L 862,94 L 861,93 L 860,92 L 859,94 L 859,99 L 859,105 L 861,108 L 861,112 L 858,117 L 855,118 L 855,119 L 856,121 L 856,129 L 855,139 L 855,144 L 856,145 L 856,149 L 855,151 L 856,152 L 873,147 L 875,147 L 877,144 L 881,142 z"/>
+<path class="us-state" id="MI" d="M 698,177 L 695,169 L 692,160 L 690,157 L 687,155 L 686,156 L 682,158 L 680,163 L 677,167 L 676,167 L 675,167 C 675,167 672,165 672,164 C 672,164 673,159 673,159 L 676,158 L 677,155 L 677,152 L 680,151 L 680,141 L 678,138 L 677,137 L 676,135 L 677,135 L 678,135 L 678,133 L 676,131 L 675,128 L 672,128 L 668,127 L 662,124 L 659,124 L 659,124 L 658,124 L 655,121 L 652,123 L 649,126 L 649,129 L 650,129 L 652,130 L 653,131 L 650,131 L 648,132 L 646,134 L 646,136 L 646,137 L 646,143 L 643,145 L 642,145 L 642,141 L 644,138 L 644,136 L 643,135 L 641,136 L 640,140 L 638,141 L 636,143 L 636,144 L 636,145 L 636,147 L 634,148 L 634,149 L 634,151 L 633,158 L 632,162 L 632,166 L 633,167 L 632,170 L 632,171 L 631,173 L 635,179 L 638,186 L 639,191 L 638,195 L 637,201 L 635,206 L 635,209 L 631,212 L 636,212 L 657,210 L 664,209 L 665,211 L 671,209 L 682,208 L 686,207 L 686,207 L 686,205 L 688,202 L 690,200 L 690,195 L 691,193 L 692,193 L 693,189 L 694,186 L 695,187 L 695,188 L 696,188 L 698,187 L 698,177 z M 582,82 L 583,80 L 586,79 L 591,75 L 593,75 L 594,75 L 589,80 L 585,82 L 583,83 L 582,82 z M 668,114 L 668,117 L 672,117 L 673,116 C 673,116 673,114 673,114 C 672,114 671,112 671,112 L 669,112 L 667,113 L 667,114 L 668,114 z M 567,111 L 568,111 L 571,110 L 575,108 L 575,107 L 575,106 L 581,105 L 584,103 L 588,101 L 588,100 L 590,97 L 592,96 L 593,94 L 595,92 L 600,89 L 604,89 L 606,90 L 605,91 L 602,92 L 600,95 L 598,96 L 597,98 L 595,102 L 595,104 L 595,105 L 596,104 L 600,101 L 601,102 L 603,102 L 607,103 L 608,104 L 610,107 L 612,110 L 616,110 L 618,109 L 619,110 L 621,110 L 622,110 L 623,110 L 625,109 L 629,105 L 632,104 L 639,104 L 644,102 L 646,100 L 648,101 L 648,106 L 648,107 L 651,107 L 653,107 L 659,105 L 660,104 L 662,105 L 662,112 L 665,115 L 666,115 L 667,116 L 666,117 L 665,116 L 662,116 L 660,116 L 657,116 L 654,118 L 652,118 L 646,116 L 641,117 L 639,119 L 632,120 L 630,121 L 629,124 L 628,125 L 627,125 L 626,123 L 621,126 L 620,126 L 619,124 L 618,124 L 617,128 L 616,132 L 612,139 L 611,138 L 610,137 L 608,127 L 604,126 L 602,123 L 590,121 L 587,120 L 579,118 L 571,116 L 567,111 z"/>
+<path class="us-state" id="VT" d="M 844,154 L 845,149 L 842,138 L 841,138 L 838,136 L 839,133 L 838,131 L 836,127 L 837,123 L 836,118 L 833,111 L 833,106 L 859,99 L 859,105 L 861,108 L 861,112 L 858,117 L 855,118 L 855,119 L 856,121 L 856,129 L 855,138 L 855,144 L 856,145 L 856,149 L 855,151 L 856,152 L 849,153 L 844,154 z"/>
+<path class="us-state" id="ME" d="M 923,79 L 925,81 L 927,85 L 927,87 L 925,91 L 923,92 L 920,95 L 915,100 C 915,100 914,100 913,100 C 913,100 912,98 912,98 L 911,99 L 910,100 L 907,101 L 906,103 L 908,104 L 907,105 L 907,108 L 905,108 L 905,106 L 905,105 L 903,105 L 902,102 L 899,103 L 901,105 L 901,106 L 900,107 L 901,110 L 901,112 L 899,114 L 896,115 L 896,118 L 891,121 L 889,121 L 888,120 L 885,123 L 885,127 L 884,128 L 884,132 L 883,138 L 880,137 L 880,134 L 876,133 L 876,130 L 868,107 L 864,92 L 865,92 L 867,93 L 867,90 L 868,85 L 870,81 L 872,77 L 870,74 L 870,68 L 871,67 L 872,65 L 871,63 L 871,58 L 873,53 L 876,45 L 878,40 L 879,40 L 881,41 L 881,42 L 882,44 L 885,45 L 885,44 L 885,43 L 890,40 L 891,38 L 893,38 L 899,41 L 901,42 L 910,72 L 916,72 L 917,73 L 917,78 L 920,81 L 920,81 L 921,80 L 920,79 L 923,79 z M 902,109 L 903,107 L 905,108 L 905,111 L 904,112 L 902,109 z M 909,103 L 910,105 C 910,105 912,105 912,105 C 912,104 912,103 912,103 L 913,102 L 912,100 L 910,101 L 909,103 z"/>
+<path class="us-state" id="RI" d="M 874,179 L 870,164 L 877,162 L 879,164 L 882,168 L 885,173 L 882,174 L 881,174 L 879,176 L 877,178 L 874,179 z"/>
+<path class="us-state" id="NY" d="M 830,189 L 829,188 L 827,188 L 824,186 L 823,180 L 819,180 L 817,177 L 797,181 L 754,190 L 747,191 L 746,185 L 748,184 L 749,183 L 750,181 L 752,180 L 754,178 L 754,176 L 756,174 L 757,173 L 757,172 L 756,169 L 754,168 L 752,162 L 755,161 L 759,159 L 763,158 L 767,157 L 773,157 L 775,158 L 777,159 L 779,157 L 781,156 L 786,156 L 789,154 L 790,151 L 792,149 L 794,149 L 796,148 L 796,145 L 795,143 L 794,142 L 795,140 L 795,138 L 794,138 L 792,137 L 791,136 L 791,134 L 797,128 L 797,127 L 799,125 L 802,120 L 805,116 L 807,114 L 809,112 L 812,111 L 818,109 L 821,110 L 825,108 L 833,106 L 833,111 L 836,118 L 837,123 L 836,127 L 838,131 L 839,133 L 838,136 L 841,137 L 842,138 L 845,149 L 844,154 L 844,165 L 845,170 L 846,174 L 847,181 L 847,189 L 846,191 L 848,193 L 849,195 L 847,197 L 847,198 L 848,198 L 850,196 L 852,194 L 853,193 L 855,194 L 857,194 L 865,190 L 868,187 L 869,186 L 873,188 L 870,191 L 866,194 L 859,199 L 856,200 L 850,202 L 846,203 L 845,203 L 845,199 L 845,196 L 845,194 L 843,193 L 838,192 L 834,191 L 830,189 z"/>
+<path class="us-state" id="PA" d="M 825,225 L 826,224 L 829,223 L 830,221 L 832,218 L 835,215 L 835,215 L 832,213 L 829,211 L 828,208 L 825,208 L 825,206 L 824,204 L 826,203 L 827,200 L 825,199 L 825,197 L 827,194 L 827,191 L 830,188 L 829,188 L 827,188 L 824,186 L 823,180 L 819,180 L 817,177 L 799,181 L 756,190 L 747,191 L 746,185 L 741,190 L 740,190 L 735,193 L 738,212 L 741,222 L 744,241 L 748,241 L 760,239 L 797,232 L 812,229 L 821,227 L 821,227 L 823,225 L 825,225 z"/>
+<path class="us-state career-st" id="NJ" d="M 830,188 L 827,191 L 827,194 L 825,197 L 825,199 L 827,200 L 826,203 L 824,204 L 825,207 L 825,208 L 828,208 L 829,211 L 832,213 L 835,215 L 835,215 L 832,218 L 830,220 L 829,223 L 826,224 L 826,226 L 826,227 L 825,230 L 826,232 L 829,235 L 834,237 L 838,238 L 839,239 L 838,240 L 838,243 L 839,243 L 841,241 L 842,236 L 845,232 L 848,225 L 849,220 L 848,219 L 848,209 L 846,206 L 845,207 L 842,207 L 842,207 L 843,206 L 845,204 L 845,203 L 845,199 L 845,196 L 845,194 L 842,193 L 837,191 L 833,190 L 830,188 z"/>
+<path class="us-state career-st" id="DE" d="M 826,228 L 826,226 L 826,224 L 825,225 L 823,225 L 821,227 L 823,232 L 825,238 L 827,247 L 829,254 L 834,254 L 840,252 L 838,245 L 837,246 L 833,243 L 831,238 L 829,235 L 826,232 L 825,230 L 826,228 z"/>
+<path class="us-state" id="MD" d="M 840,252 L 834,254 L 829,254 L 827,247 L 825,238 L 822,231 L 821,227 L 814,229 L 799,232 L 761,239 L 762,244 L 763,250 L 764,249 L 766,247 L 768,244 L 770,244 L 772,242 L 774,240 L 775,240 L 778,240 L 780,238 L 782,236 L 784,236 L 786,237 L 789,239 L 791,240 L 792,242 L 796,244 L 796,246 L 802,248 L 803,248 L 804,246 L 807,248 L 806,251 L 805,255 L 803,257 L 803,259 L 804,261 L 809,263 L 813,262 L 816,263 L 818,264 L 819,262 L 818,260 L 818,258 L 815,256 L 813,250 L 815,245 L 815,243 L 813,241 C 813,241 815,240 815,239 C 815,239 815,237 815,237 L 817,236 L 819,234 L 820,235 L 818,237 L 817,241 L 817,242 L 819,242 L 819,247 L 817,248 L 818,252 L 818,252 L 819,250 L 821,252 L 819,253 L 819,256 L 821,260 L 825,260 L 827,259 L 830,264 L 832,264 L 838,261 L 840,257 L 840,252 z M 824,261 L 825,264 L 825,266 L 826,268 C 826,268 827,267 827,266 C 827,266 826,263 826,263 L 826,261 L 824,261 z"/>
+<path class="us-state" id="VA" d="M 832,266 L 831,264 L 838,262 L 837,265 L 834,269 L 834,273 L 834,277 L 832,282 L 830,283 L 829,279 L 829,273 L 831,269 L 832,266 z M 835,294 L 777,307 L 739,312 L 733,312 L 730,314 L 723,314 L 714,315 L 703,317 L 714,311 L 714,309 L 715,307 L 726,295 L 730,300 L 734,301 L 736,300 L 739,298 L 741,300 L 745,298 L 747,294 L 749,294 L 752,292 L 754,293 L 757,289 L 757,287 L 756,285 L 757,284 L 763,271 L 763,266 L 764,265 L 767,268 L 771,267 L 772,260 L 775,259 L 776,256 L 779,254 L 782,248 L 782,243 L 792,247 C 792,247 792,242 792,242 L 796,244 L 796,247 L 802,248 L 804,249 L 806,251 L 805,255 L 803,257 L 803,259 L 804,261 L 809,262 L 813,263 L 816,263 L 818,264 L 819,267 L 822,267 L 823,268 L 823,273 L 824,274 L 823,276 L 825,277 L 824,278 L 822,278 L 822,280 L 824,281 L 824,283 L 826,285 L 827,287 L 824,289 L 826,290 L 831,288 L 835,294 z"/>
+<path class="us-state" id="WV" d="M 761,239 L 762,244 L 763,250 L 766,247 L 768,244 L 770,244 L 772,242 L 774,240 L 775,240 L 778,240 L 780,238 L 782,236 L 784,236 L 786,237 L 789,239 L 791,241 L 793,242 L 792,247 L 786,245 L 782,243 L 782,248 L 779,254 L 776,256 L 775,259 L 773,260 L 772,263 L 771,267 L 767,268 L 764,265 L 763,266 L 763,271 L 761,275 L 756,286 L 757,287 L 757,289 L 754,293 L 752,292 L 749,294 L 747,294 L 745,298 C 745,298 742,300 741,300 C 741,299 738,298 738,298 L 736,300 L 734,301 L 730,300 L 729,299 L 727,296 L 724,294 L 722,290 L 718,287 L 717,284 L 714,283 L 713,281 L 713,276 L 715,276 L 717,275 L 718,272 L 719,271 L 719,266 L 720,262 L 722,261 L 723,262 L 723,264 L 725,263 L 726,262 L 724,260 L 724,257 L 725,256 L 728,253 L 729,251 L 731,252 L 733,250 L 736,247 L 739,243 L 739,237 L 740,232 L 740,228 L 738,224 L 739,223 L 741,222 L 744,242 L 749,241 L 761,239 z"/>
+<path class="us-state" id="OH" d="M 735,193 L 729,197 L 725,200 L 722,203 L 718,207 L 715,208 L 712,209 L 706,211 L 704,211 L 701,208 L 696,209 L 693,207 L 691,206 L 686,207 L 676,208 L 664,211 L 666,225 L 667,239 L 670,262 L 671,267 L 675,267 L 677,266 L 680,268 L 683,272 L 688,272 L 690,274 L 691,274 L 694,273 L 696,273 L 702,274 L 704,272 L 706,270 L 708,270 L 709,272 L 710,273 L 714,276 L 716,276 L 717,275 L 718,272 L 719,271 L 719,266 C 719,266 720,262 720,262 L 722,261 L 723,262 L 723,264 L 725,263 L 726,262 L 724,260 L 725,257 L 725,256 L 727,253 L 728,252 L 731,252 L 733,250 L 736,247 L 739,243 L 739,238 L 739,233 L 739,228 L 738,225 L 739,223 L 741,222 L 738,213 L 735,193 z"/>
+<path class="us-state" id="IN" d="M 620,300 L 620,297 L 620,293 L 622,290 L 624,286 L 627,282 L 626,276 L 624,273 L 624,270 L 625,264 L 624,257 L 623,241 L 622,226 L 621,214 L 624,215 L 625,216 L 627,216 L 629,214 L 632,212 L 637,212 L 659,210 L 664,209 L 666,225 L 670,262 L 671,268 L 670,270 L 671,272 L 671,273 L 669,275 L 665,276 L 662,277 L 662,282 L 657,285 L 654,289 L 655,292 L 654,293 L 651,293 L 649,291 L 647,293 L 644,294 L 644,297 L 643,298 L 642,297 L 640,295 L 637,296 L 635,299 L 634,299 L 633,297 L 628,297 L 622,298 L 620,300 z"/>
+<path class="us-state career-st" id="IL" d="M 620,300 L 620,297 L 620,292 L 622,290 L 624,285 L 627,281 L 626,276 L 624,273 L 624,269 L 625,264 L 624,257 L 623,241 L 622,226 L 621,214 L 620,214 L 620,211 L 618,207 L 617,205 L 615,203 L 615,197 L 569,200 L 569,202 L 572,203 L 573,204 L 573,206 L 577,209 L 578,212 L 577,215 L 575,219 L 574,221 L 572,223 L 570,224 L 565,225 L 564,227 L 564,229 L 564,230 L 566,232 L 566,236 L 564,238 L 563,239 L 563,242 L 562,243 L 560,244 L 560,245 L 560,247 L 558,248 L 557,251 L 558,255 L 560,262 L 567,270 L 573,273 L 573,278 L 574,279 L 580,280 L 583,281 L 582,285 L 580,291 L 579,294 L 581,298 L 588,303 L 592,304 L 594,309 L 596,312 L 596,315 L 597,319 L 599,321 L 600,320 L 601,318 L 603,316 L 606,316 L 608,317 L 612,318 L 613,318 L 613,316 L 612,313 L 612,311 L 614,310 L 617,309 L 618,308 L 618,307 L 617,305 L 618,304 L 620,300 z"/>
+<path class="us-state career-st" id="CT" d="M 874,179 L 870,164 L 866,165 L 844,170 L 845,173 L 847,180 L 847,189 L 846,191 L 848,193 L 852,189 L 856,186 L 858,184 L 858,185 L 861,183 L 866,182 L 874,179 z"/>
+<path class="us-state" id="WI" d="M 615,197 L 615,194 L 614,190 L 613,184 L 612,181 L 613,178 L 614,175 L 615,173 L 615,169 L 614,166 L 614,164 L 616,161 L 617,159 L 616,157 L 616,155 L 616,151 L 619,145 L 622,138 L 622,136 L 621,135 L 621,135 L 616,142 L 614,146 L 612,148 L 611,150 L 609,151 L 608,153 L 606,152 L 606,150 L 608,148 L 610,143 L 611,142 L 612,139 L 610,137 L 608,127 L 604,126 L 602,123 L 590,121 L 587,120 L 579,118 L 571,116 L 567,111 L 567,112 L 566,112 L 565,110 L 564,111 L 562,111 L 561,112 L 560,111 L 560,109 L 562,106 L 563,105 L 561,104 L 559,104 L 556,106 L 549,110 L 546,110 L 543,110 L 542,109 L 540,112 L 540,115 L 540,123 L 539,125 L 533,128 L 531,134 L 532,135 L 534,137 L 535,140 L 533,143 L 533,147 L 533,154 L 536,157 L 540,157 L 542,160 L 545,160 L 549,166 L 556,170 L 558,173 L 559,180 L 560,184 L 562,185 L 562,187 L 560,190 L 560,193 L 563,197 L 565,198 L 568,199 L 570,200 L 615,197 z"/>
+<path class="us-state" id="NC" d="M 835,294 L 837,299 L 841,306 L 843,308 L 844,310 L 841,311 L 842,311 L 842,315 L 839,317 L 839,319 L 837,322 L 834,323 L 831,323 L 830,323 L 828,322 L 828,323 L 828,324 L 830,324 L 831,325 L 829,331 L 833,331 L 834,333 L 836,331 L 838,330 L 836,334 L 833,339 L 831,339 L 830,338 L 827,339 L 822,341 L 816,347 L 812,351 L 810,358 L 810,360 L 805,361 L 800,362 L 790,354 L 777,346 L 774,345 L 762,347 L 757,348 L 756,344 L 753,342 L 736,343 L 729,344 L 720,348 L 714,351 L 693,353 L 693,349 L 695,348 L 698,347 L 698,343 L 703,341 L 706,339 L 711,336 L 715,334 L 716,330 L 720,327 L 720,326 C 720,326 720,328 721,328 C 722,328 723,328 723,328 L 725,324 L 727,324 L 730,324 L 731,320 L 734,318 L 735,316 L 735,312 L 739,312 L 746,311 L 762,309 L 777,307 L 799,302 L 819,298 L 830,295 L 835,294 z M 839,328 L 842,325 L 845,322 L 847,322 L 847,320 L 846,314 L 845,311 L 844,309 L 845,309 L 847,315 L 848,319 L 848,323 L 844,324 L 841,326 L 840,328 L 839,328 z"/>
+<path class="us-state" id="DC" d="M 806,251 L 804,249 L 803,248 L 804,246 L 807,248 L 806,251 z"/>
+<path class="us-state career-st" id="MA" d="M 900,173 L 902,173 L 902,171 L 903,171 L 904,173 L 903,174 L 899,174 L 900,173 z M 890,174 L 893,171 L 894,171 L 896,173 L 894,174 L 891,175 L 890,174 z M 855,152 L 873,147 L 875,147 L 877,144 L 881,142 L 884,147 L 881,152 L 881,153 L 883,156 L 884,155 L 886,155 L 888,158 L 892,164 L 896,164 L 898,163 L 900,161 L 899,159 L 897,157 L 895,158 L 894,157 L 895,156 L 897,156 L 899,157 L 901,159 L 902,162 L 902,165 L 898,166 L 894,168 L 890,172 L 888,174 L 888,173 L 891,171 L 891,170 L 890,167 L 887,168 L 886,170 L 887,172 L 885,173 L 882,168 L 879,164 L 877,162 L 870,164 L 865,165 L 844,170 L 844,165 L 844,154 L 849,153 L 855,152 z"/>
+<path class="us-state" id="TN" d="M 697,318 L 645,323 L 629,325 L 624,326 L 621,326 L 620,330 L 612,330 L 605,331 L 597,330 L 596,337 L 594,343 L 591,346 L 589,350 L 589,353 L 585,355 L 586,359 L 585,363 L 584,364 L 693,353 L 693,349 L 695,348 L 698,347 L 698,343 L 702,341 L 707,339 L 711,336 L 715,334 L 716,330 L 720,326 L 720,326 C 720,326 720,328 721,328 C 722,328 723,328 723,328 L 725,324 L 727,324 L 730,324 L 731,320 L 734,318 L 735,316 L 735,312 L 733,312 L 730,314 L 723,314 L 705,316 L 697,318 z"/>
+<path class="us-state" id="AR" d="M 594,343 L 590,344 L 585,343 L 585,342 L 588,339 L 589,335 L 587,332 L 509,335 L 510,342 L 510,350 L 512,361 L 512,399 L 514,401 L 517,399 L 520,400 L 521,407 L 576,406 L 577,404 L 577,400 L 575,397 L 577,396 L 575,393 L 576,391 L 577,385 L 580,383 L 579,381 L 583,375 L 586,374 L 586,373 L 585,371 L 588,365 L 590,364 L 591,360 L 593,359 L 589,359 L 588,355 L 591,352 L 591,350 L 593,346 L 594,343 z"/>
+<path class="us-state" id="MO" d="M 558,248 L 556,245 L 555,243 L 490,245 L 488,245 L 489,248 L 489,250 L 492,254 L 495,258 L 498,261 L 500,261 L 502,262 L 502,265 L 500,267 L 499,269 L 501,272 L 504,275 L 506,277 L 508,289 L 508,325 L 508,329 L 509,335 L 531,334 L 554,333 L 575,332 L 587,332 L 589,336 L 588,339 L 585,341 L 585,343 L 590,344 L 594,343 L 596,338 L 596,332 L 598,329 L 601,328 L 601,325 L 602,323 L 600,320 L 599,321 L 597,319 L 596,314 L 597,312 L 595,308 L 593,304 L 588,303 L 581,297 L 579,293 L 580,290 L 582,284 L 583,281 L 581,280 L 574,279 L 573,277 L 573,273 L 567,270 L 560,262 L 558,255 L 558,250 L 558,248 z"/>
+<path class="us-state" id="GA" d="M 672,356 L 672,358 L 672,360 L 673,363 L 676,371 L 679,381 L 680,387 L 682,392 L 683,399 L 686,405 L 688,409 L 689,412 L 691,413 L 691,415 L 689,420 L 688,423 L 688,425 L 690,429 L 690,435 L 689,437 L 690,438 L 692,439 L 692,442 L 694,445 L 696,447 L 704,448 L 715,447 L 736,446 L 742,445 L 746,445 L 747,448 L 749,449 L 750,444 L 748,440 L 749,438 L 755,439 L 760,439 L 759,433 L 761,423 L 763,419 L 762,416 L 766,410 L 765,409 L 763,409 L 761,408 L 760,406 L 759,402 L 756,400 L 754,400 L 752,395 L 749,388 L 745,387 L 743,385 L 742,382 L 740,380 L 737,379 L 735,376 L 732,374 L 728,372 L 727,370 L 725,367 L 724,366 L 721,361 L 717,361 L 713,359 L 712,357 L 712,356 L 713,354 L 715,353 L 714,351 L 672,356 z"/>
+<path class="us-state" id="SC" d="M 765,408 L 763,409 L 761,408 L 760,406 L 759,402 L 756,400 L 754,399 L 752,395 L 749,389 L 745,387 L 743,385 L 742,382 L 740,380 L 737,379 L 735,376 L 732,374 L 728,372 L 727,370 L 725,368 L 724,366 L 721,361 L 717,361 L 713,359 L 712,357 L 712,356 L 713,354 L 715,353 L 714,350 L 720,348 L 729,344 L 737,343 L 753,342 L 756,344 L 757,348 L 762,347 L 774,345 L 777,346 L 790,354 L 800,362 L 795,367 L 792,374 L 791,380 L 790,381 L 789,383 L 786,384 L 784,388 L 781,390 L 779,394 L 778,395 L 774,398 L 771,398 L 772,401 L 767,407 L 765,408 z"/>
+<path class="us-state" id="KY" d="M 726,295 L 724,298 L 720,302 L 715,307 L 714,309 L 714,311 L 710,313 L 704,317 L 697,318 L 645,323 L 629,325 L 624,325 L 621,325 L 620,330 L 612,330 L 605,330 L 597,330 L 598,329 L 601,328 L 601,324 L 602,323 L 600,320 L 601,318 L 603,316 L 606,316 L 608,317 L 612,318 L 613,318 L 613,316 L 612,313 L 612,311 L 614,310 L 617,309 L 618,308 L 618,306 L 617,305 L 618,304 C 618,303 620,300 620,300 L 623,298 L 628,297 L 633,297 L 634,299 L 635,299 L 637,296 L 640,295 L 642,297 L 643,298 L 644,297 L 644,294 L 647,293 L 649,291 L 651,293 L 654,293 L 655,292 L 654,289 L 657,285 L 662,282 L 662,277 L 665,277 L 669,275 L 671,273 L 671,272 L 670,270 L 671,267 L 675,267 L 677,266 L 680,268 L 683,272 L 688,272 L 690,274 L 691,274 L 694,273 L 699,273 L 702,274 L 703,272 L 706,270 L 708,269 L 709,272 L 711,273 L 713,275 L 713,281 L 714,283 L 717,284 L 718,287 L 722,290 L 724,294 L 726,295 z"/>
+<path class="us-state" id="AL" d="M 631,460 L 630,446 L 627,427 L 627,413 L 628,382 L 628,366 L 628,359 L 673,356 L 672,358 L 673,360 L 673,363 L 677,371 L 679,381 L 680,387 L 682,392 L 684,399 L 686,405 L 688,409 L 689,412 L 691,413 L 691,415 L 689,420 L 689,423 L 688,425 L 690,429 L 690,435 L 690,437 L 690,438 L 692,439 L 692,442 L 686,441 L 680,442 L 654,445 L 644,446 L 643,449 L 645,451 L 648,453 L 648,461 L 643,463 L 640,463 L 643,461 L 643,460 L 640,454 L 637,453 L 636,458 L 635,461 L 634,460 L 631,460 z"/>
+<path class="us-state" id="LA" d="M 608,459 L 605,456 L 606,450 L 605,450 L 596,451 L 571,451 L 570,449 L 571,440 L 574,434 L 579,426 L 579,423 L 580,423 L 580,421 L 578,418 L 578,417 L 576,412 L 576,406 L 521,407 L 521,416 L 521,426 L 522,430 L 525,434 L 525,439 L 530,444 L 530,447 L 531,448 L 530,457 L 527,462 L 529,464 L 528,466 L 527,474 L 526,477 L 526,480 L 531,479 L 543,479 L 553,483 L 560,484 L 563,482 L 567,483 L 570,484 L 571,482 L 567,481 L 565,482 L 562,480 C 562,480 562,479 563,479 C 564,478 566,478 566,478 L 568,479 L 569,478 L 573,479 L 574,481 L 575,483 L 579,484 L 581,485 L 580,487 L 579,488 L 580,490 L 589,493 L 592,492 L 593,489 L 596,489 L 598,487 L 599,488 L 600,491 L 597,492 L 598,493 L 602,491 L 604,488 L 605,487 L 602,487 L 603,485 L 603,484 L 605,484 L 606,482 L 607,483 C 607,483 607,486 608,486 C 608,486 612,487 612,487 L 616,489 L 617,490 L 620,490 L 621,491 L 623,488 L 623,487 L 622,487 L 618,484 L 613,483 L 609,481 L 611,478 L 613,478 L 613,478 L 611,477 L 611,476 L 614,476 L 616,473 L 615,471 L 615,469 L 613,469 L 611,471 L 611,473 L 607,473 L 607,471 L 608,469 L 610,466 L 609,463 L 608,459 z"/>
+<path class="us-state" id="MS" d="M 632,459 L 631,461 L 626,461 L 625,460 L 623,459 L 616,461 L 614,461 L 611,465 L 610,466 L 609,463 L 608,459 L 605,456 L 606,450 L 605,450 L 603,450 L 595,451 L 571,451 L 570,449 L 571,440 L 574,435 L 579,426 L 579,423 L 580,423 L 580,421 L 578,419 L 578,416 L 576,412 L 576,406 L 577,404 L 577,400 L 575,397 L 577,396 L 575,393 L 576,392 L 577,385 L 580,383 L 579,381 L 583,375 L 586,374 L 586,372 L 585,371 L 588,365 L 590,364 L 591,363 L 628,359 L 628,365 L 628,382 L 627,413 L 627,427 L 630,446 L 632,459 z"/>
+<path class="us-state" id="IA" d="M 569,200 L 569,202 L 572,203 L 573,204 L 573,206 L 577,209 L 578,212 L 577,215 L 575,218 L 575,221 L 572,223 L 571,223 L 565,225 L 564,229 L 564,230 L 566,232 L 566,236 L 564,238 L 563,239 L 564,242 L 562,243 L 560,244 L 560,245 L 560,247 L 559,248 L 556,245 L 555,243 L 489,245 L 488,245 L 486,241 L 486,234 L 484,230 L 484,225 L 481,221 L 480,216 L 478,209 L 476,203 L 475,201 L 474,199 L 475,194 L 477,188 L 474,186 L 474,183 L 475,181 L 476,181 L 559,179 L 560,184 L 562,185 L 562,187 L 560,190 L 560,193 L 563,197 L 565,198 L 569,199 L 569,200 z"/>
+<path class="us-state" id="MN" d="M 475,129 L 475,120 L 473,113 L 471,100 L 471,90 L 469,86 L 467,81 L 467,71 L 468,67 L 466,62 L 496,62 L 497,53 L 497,53 L 499,54 L 501,55 L 502,60 L 504,66 L 505,68 L 510,68 L 510,69 L 517,70 L 517,72 L 522,72 L 522,70 L 523,69 L 525,69 L 527,70 L 530,70 L 533,72 L 539,75 L 541,75 L 542,74 L 543,74 L 544,77 L 546,78 L 547,77 L 548,78 L 548,80 L 551,81 L 554,81 L 555,80 L 558,77 L 561,76 L 562,78 L 562,79 L 563,79 L 564,78 L 573,78 L 575,81 L 576,81 L 576,80 L 581,80 L 580,82 L 576,84 L 567,88 L 562,90 L 559,92 L 557,96 L 554,100 L 553,101 L 548,106 L 547,106 L 543,109 L 540,112 L 540,115 L 540,123 L 539,125 L 533,128 L 531,134 L 534,137 L 535,140 L 533,143 L 533,147 L 533,154 L 536,157 L 540,157 L 542,160 L 545,160 L 549,166 L 556,170 L 558,173 L 559,179 L 478,181 L 477,145 L 477,142 L 473,138 L 472,137 L 472,135 L 474,133 L 475,132 L 475,129 z"/>
+<path class="us-state" id="OK" d="M 380,321 L 364,320 L 363,331 L 383,332 L 415,333 L 413,357 L 413,375 L 413,377 L 417,380 L 419,382 L 420,381 L 421,379 L 422,381 L 424,381 L 424,380 L 427,381 L 426,385 L 430,385 L 433,386 L 437,387 L 439,389 L 442,387 L 445,388 L 448,391 L 449,391 L 449,393 L 451,394 L 453,392 L 455,392 L 458,392 L 458,395 L 465,397 L 466,396 L 468,392 L 469,392 L 470,394 L 474,395 L 478,396 L 481,397 L 483,396 L 484,394 L 488,394 L 490,395 L 493,393 L 494,393 L 494,394 L 499,394 L 500,392 L 502,393 L 504,395 L 507,397 L 510,398 L 512,399 L 512,362 L 511,351 L 511,342 L 509,335 L 508,328 L 508,324 L 496,325 L 450,324 L 405,322 L 380,321 z"/>
+<path class="us-state career-st" id="TX" d="M 361,331 L 384,332 L 415,333 L 413,356 L 413,374 L 413,376 L 417,380 L 419,382 L 420,381 L 421,379 L 422,381 L 424,381 L 424,380 L 425,381 L 427,381 L 426,385 L 430,385 L 433,386 L 437,387 L 440,389 L 442,387 L 445,388 L 448,391 L 449,391 L 449,393 L 451,394 L 453,392 L 455,392 L 458,392 L 458,395 L 465,397 L 466,396 L 468,392 L 468,392 L 469,392 L 470,394 L 474,395 L 478,396 L 481,397 L 483,396 L 484,394 L 488,394 L 490,395 L 493,393 L 494,393 L 495,394 L 499,394 L 500,392 L 502,393 L 504,395 L 508,397 L 510,398 L 512,399 L 514,401 L 517,399 L 520,400 L 521,407 L 521,416 L 521,426 L 522,429 L 525,434 L 526,439 L 530,444 L 530,447 L 531,448 L 530,457 L 527,462 L 529,464 L 528,466 L 527,474 L 526,477 L 526,480 L 520,482 L 511,486 L 510,488 L 507,490 L 505,492 L 504,493 L 498,498 L 495,500 L 490,503 L 484,506 L 478,509 L 476,511 L 470,514 L 467,515 L 463,520 L 459,521 L 458,523 L 460,524 L 459,530 L 458,535 L 456,538 L 456,543 L 456,545 L 458,552 L 459,558 L 461,561 L 460,563 L 457,565 L 451,561 L 446,560 L 444,560 L 441,559 L 437,556 L 432,555 L 424,552 L 422,548 L 421,541 L 418,540 L 417,537 L 418,537 L 418,533 L 417,533 L 416,532 L 417,527 L 416,525 L 412,524 L 409,519 L 406,513 L 401,510 L 401,508 L 396,496 L 395,492 L 394,490 L 393,488 L 387,483 L 385,480 L 385,479 L 382,477 L 375,475 L 368,475 L 365,473 L 360,474 L 357,476 L 355,479 L 354,483 L 349,489 L 347,491 L 344,490 L 342,489 L 341,489 L 337,486 L 337,486 L 335,484 L 330,482 L 322,474 L 320,469 L 320,461 L 317,455 L 316,452 L 315,451 L 314,449 L 309,447 L 307,445 L 300,437 L 299,434 L 294,432 L 293,427 L 290,424 L 288,424 L 288,419 L 296,420 L 325,423 L 354,424 L 356,405 L 360,349 L 361,331 L 363,331 M 462,560 L 461,553 L 458,546 L 458,539 L 459,531 L 463,524 L 466,518 L 469,515 L 470,515 L 465,522 L 461,528 L 459,535 L 458,540 L 459,546 L 462,553 L 462,559 L 463,560 L 462,560 z"/>
+<path class="us-state" id="NM" d="M 288,424 L 287,419 L 296,420 L 326,423 L 353,424 L 356,406 L 360,350 L 361,330 L 363,331 L 364,319 L 260,309 L 242,429 L 258,431 L 259,421 L 288,424 z"/>
+<path class="us-state" id="KS" d="M 508,324 L 495,325 L 449,324 L 405,322 L 380,321 L 384,256 L 406,257 L 446,258 L 491,259 L 496,259 L 498,261 L 500,261 L 501,262 L 501,265 L 500,267 L 499,269 L 501,272 L 504,275 L 506,277 L 508,288 L 508,324 z"/>
+<path class="us-state" id="NE" d="M 486,241 L 489,248 L 489,250 L 493,256 L 495,259 L 490,259 L 447,258 L 406,257 L 384,256 L 385,235 L 353,232 L 357,188 L 372,189 L 393,190 L 410,191 L 434,192 L 445,192 L 447,194 L 452,197 L 453,198 L 457,197 L 461,196 L 464,196 L 466,197 L 470,199 L 473,200 L 473,202 L 474,204 L 476,204 L 477,204 L 478,209 L 481,217 L 481,221 L 484,225 L 484,230 L 486,234 L 486,241 z"/>
+<path class="us-state" id="SD" d="M 476,204 L 476,203 L 474,199 L 475,194 L 477,188 L 474,186 L 474,183 L 474,181 L 478,181 L 478,176 L 477,145 L 477,142 L 473,138 L 472,137 L 471,135 L 474,134 L 475,132 L 475,129 L 417,128 L 362,124 L 357,188 L 371,189 L 391,190 L 409,191 L 433,192 L 445,192 L 447,194 L 452,197 L 453,198 L 457,197 L 464,196 L 466,197 L 470,199 L 473,201 L 473,202 L 474,204 L 476,204 z"/>
+<path class="us-state" id="ND" d="M 475,129 L 475,120 L 473,114 L 471,101 L 471,90 L 469,87 L 467,81 L 467,71 L 468,67 L 466,62 L 437,61 L 419,60 L 392,59 L 369,57 L 362,124 L 417,128 L 475,129 z"/>
+<path class="us-state" id="WY" d="M 360,143 L 254,130 L 240,218 L 353,232 L 360,143 z"/>
+<path class="us-state" id="MT" d="M 369,57 L 339,54 L 309,51 L 280,47 L 248,41 L 229,38 L 197,31 L 192,52 L 195,60 L 194,64 L 196,69 L 199,70 L 204,81 L 206,84 L 207,85 L 210,87 L 211,89 L 204,106 L 204,109 L 206,112 L 207,112 L 212,109 L 213,108 L 214,108 L 214,114 L 217,126 L 220,129 L 221,130 L 222,132 L 222,135 L 223,139 L 224,140 L 226,137 L 229,137 L 232,139 L 235,138 L 239,138 L 242,140 L 245,139 L 246,136 L 249,135 L 250,137 L 250,140 L 252,141 L 254,130 L 360,143 L 369,57 z"/>
+<path class="us-state" id="CO" d="M 380,321 L 385,235 L 272,222 L 259,310 L 380,321 z"/>
+<path class="us-state" id="ID" d="M 148,176 L 157,141 L 159,137 L 161,131 L 160,129 L 157,129 L 157,128 L 157,127 L 157,124 L 162,118 L 164,118 L 165,117 L 165,113 L 166,113 L 170,107 L 174,103 L 174,99 L 171,96 L 169,92 L 183,28 L 196,31 L 192,52 L 196,60 L 194,64 L 196,69 L 199,70 L 203,80 L 206,84 L 207,85 L 210,87 L 211,89 L 204,106 L 204,109 L 206,112 L 207,112 L 212,109 L 213,108 L 214,108 L 214,114 L 217,126 L 221,130 L 222,132 L 222,136 L 223,139 L 224,140 L 226,137 L 229,137 L 232,139 L 235,138 L 239,138 L 243,140 L 245,139 L 246,136 L 249,135 L 250,137 L 250,140 L 252,141 L 243,195 C 243,195 155,178 148,176 z"/>
+<path class="us-state" id="UT" d="M 259,310 L 176,298 L 196,186 L 243,194 L 242,205 L 239,218 L 247,219 L 264,221 L 272,222 L 259,310 z"/>
+<path class="us-state" id="AZ" d="M 145,383 L 142,385 L 142,386 L 142,387 L 161,398 L 173,405 L 188,414 L 205,424 L 217,426 L 242,429 L 260,310 L 176,298 L 173,315 L 171,315 L 169,317 L 167,317 L 166,314 L 163,314 L 162,313 L 161,313 L 160,313 L 158,314 L 158,321 L 158,323 L 157,336 L 156,338 L 155,341 L 158,346 L 159,352 L 160,353 L 161,354 L 161,356 L 159,357 L 156,359 L 154,361 L 152,365 L 152,369 L 149,372 L 147,373 L 147,374 L 147,375 L 147,376 L 151,377 L 150,380 L 149,382 L 145,383 z"/>
+<path class="us-state" id="NV" d="M 196,186 L 173,314 L 171,315 L 169,317 L 167,317 L 166,314 L 163,314 L 162,313 L 161,313 L 158,315 L 158,321 L 158,327 L 157,336 L 156,338 L 153,337 L 84,232 L 103,165 L 196,186 z"/>
+<path class="us-state" id="OR" d="M 149,176 L 158,141 L 159,137 L 161,131 L 160,130 L 158,130 L 157,128 L 157,127 L 158,123 L 162,118 L 164,117 L 165,116 L 166,112 L 170,106 L 174,102 L 174,99 L 171,97 L 169,92 L 157,88 L 141,85 L 126,85 L 126,83 L 120,86 L 116,85 L 113,83 L 112,84 L 107,84 L 106,82 L 100,80 L 100,81 L 95,79 L 93,81 L 87,81 L 81,76 L 82,76 L 82,68 L 80,64 L 76,63 L 75,61 L 73,60 L 67,62 L 65,69 L 61,79 L 58,85 L 53,99 L 47,113 L 39,126 L 37,129 L 36,137 L 36,149 L 149,176 z"/>
+<path class="us-state career-st" id="WA" d="M 102,8 L 106,9 L 116,12 L 125,14 L 145,19 L 168,25 L 183,28 L 169,92 L 157,88 L 141,85 L 126,85 L 126,83 L 120,86 L 115,85 L 113,83 L 112,84 L 107,84 L 106,82 L 100,80 L 100,81 L 95,79 L 93,81 L 87,81 L 81,76 L 82,75 L 82,68 L 80,64 L 76,63 L 75,61 L 73,60 L 69,62 L 67,58 L 67,55 L 70,55 L 72,51 L 69,50 L 69,46 L 73,46 L 71,43 L 69,36 L 70,33 L 70,25 L 68,22 L 70,12 L 72,13 L 75,16 L 78,18 L 81,20 L 85,22 L 88,23 L 91,24 L 95,25 L 97,25 L 97,23 L 98,22 L 100,20 L 101,22 L 101,23 L 99,24 L 99,26 L 100,27 L 101,30 L 102,32 L 104,32 L 104,30 L 103,29 L 102,26 L 103,24 L 102,22 L 102,20 L 104,17 L 103,14 L 101,9 L 101,8 L 102,8 z M 93,14 L 95,13 L 95,15 L 97,13 L 99,13 L 100,15 L 98,16 L 99,17 L 98,19 L 97,20 C 97,20 96,20 96,19 C 96,19 97,17 97,17 L 96,16 L 95,18 L 95,18 L 93,16 L 93,14 z"/>
+<path class="us-state career-st" id="CA" d="M 145,382 L 149,382 L 150,380 L 151,377 L 147,376 L 147,375 L 147,373 L 147,373 L 149,372 L 152,369 L 152,364 L 154,361 L 156,359 L 159,357 L 161,356 L 161,354 L 160,353 L 159,352 L 158,346 L 155,341 L 156,338 L 153,337 L 84,233 L 103,165 L 36,149 L 35,154 L 34,161 L 29,173 L 26,176 L 26,177 L 24,178 L 23,182 L 22,185 L 25,189 L 26,194 L 27,197 L 27,204 L 25,207 L 25,212 L 24,216 L 25,220 L 28,225 L 30,229 L 32,233 L 31,237 L 31,237 L 31,239 L 37,246 L 36,248 L 36,250 L 35,252 L 35,260 L 37,264 L 39,267 L 42,267 L 43,270 L 42,274 L 40,275 L 38,275 L 38,279 L 38,282 L 41,286 L 43,292 L 44,296 L 46,299 L 49,305 L 51,308 L 51,311 L 53,312 L 53,314 L 52,316 L 50,323 L 50,325 L 52,328 L 56,328 L 61,330 L 65,332 L 68,332 L 70,335 L 73,340 L 74,342 L 78,345 L 83,345 L 84,347 L 85,351 L 84,351 L 84,352 L 87,353 L 90,353 L 93,352 L 97,356 L 98,358 L 100,362 L 101,365 L 101,375 L 101,377 L 111,378 L 131,381 L 145,382 z M 57,338 L 58,340 L 58,341 L 54,341 L 54,340 L 53,339 L 57,338 z M 58,338 L 60,338 L 63,340 L 66,341 L 65,342 L 61,342 L 59,340 L 58,338 z M 79,358 L 81,361 L 82,362 L 83,362 L 84,361 L 83,359 L 80,357 L 79,357 L 79,358 z M 78,367 L 80,370 L 81,372 L 79,372 L 78,371 C 78,371 77,370 77,369 C 77,369 77,367 77,367 L 78,367 z"/>
+<path id="route-path" d="M830,232 L838,207 L893,160 L583,245 L88,30 L48,310 L848,190 L420,370" stroke-dasharray="4000" stroke-dashoffset="4000"/>
+<g class="map-city active" data-idx="0" data-target="ch-wilm">
+  <circle cx="830" cy="232" r="6" fill="#f59e0b"/>
+  <text x="815" y="257" text-anchor="middle">Delaware</text>
+</g>
+<g class="map-city" data-idx="1" data-target="ch-orbit">
+  <circle cx="838" cy="207" r="5" fill="#444"/>
+  <text x="860" y="200" text-anchor="middle">New Brunswick</text>
+</g>
+<g class="map-city" data-idx="2" data-target="ch-ss">
+  <circle cx="893" cy="160" r="5" fill="#444"/>
+  <text x="893" y="150" text-anchor="middle">Boston</text>
+</g>
+<g class="map-city" data-idx="3" data-target="ch-ibm">
+  <circle cx="583" cy="245" r="5" fill="#444"/>
+  <text x="583" y="265" text-anchor="middle">Schaumburg</text>
+</g>
+<g class="map-city" data-idx="4" data-target="ch-att">
+  <circle cx="88" cy="30" r="5" fill="#444"/>
+  <text x="88" y="50" text-anchor="middle">Bothell</text>
+</g>
+<g class="map-city" data-idx="5" data-target="ch-cisco">
+  <circle cx="48" cy="310" r="5" fill="#444"/>
+  <text x="48" y="300" text-anchor="middle">San Jose</text>
+</g>
+<g class="map-city" data-idx="6" data-target="ch-sync-stam">
+  <circle cx="848" cy="190" r="5" fill="#444"/>
+  <text x="848" y="180" text-anchor="middle">Stamford</text>
+</g>
+<g class="map-city" data-idx="7" data-target="ch-sync-dal">
+  <circle cx="420" cy="370" r="5" fill="#444"/>
+  <text x="420" y="390" text-anchor="middle">Dallas</text>
+</g>
+<text id="airplane" x="830" y="222" font-size="18" text-anchor="middle">&#9992;</text>
+</svg>
+    </div>
+  </div>
+</section>
+
+<!-- CH1: WILMINGTON -->
+<section class="section chapter" id="ch-wilm" data-chapter="0" data-color="59,130,246">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; Delaware, USA</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)">Wilmington University</div>
+    <h2 class="chapter-role" data-reveal>Master's in Military Information Systems Technology</h2>
+    <p class="chapter-dates" data-reveal>2013 &mdash; 2015</p>
+    <div class="chapter-narrative" data-typewriter="2013: Where the American dream began &mdash; crossing oceans to chase knowledge."></div>
+    <p class="chapter-desc" data-reveal>The journey begins with a bold move from India to the United States. Pursuing a graduate degree at Wilmington University, diving deep into information systems, cybersecurity, and military-grade technology concepts. This was the foundation that bridged engineering with strategic, large-scale systems thinking.</p>
+    <div class="chapter-skills" data-reveal>
+      <span class="skill-tag">Information Systems</span>
+      <span class="skill-tag">Systems Analysis</span>
+      <span class="skill-tag">Research</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH2: ORBIT HEALTHCARE -->
+<section class="section chapter" id="ch-orbit" data-chapter="1" data-color="16,185,129">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; New Brunswick, New Jersey</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)">Orbit Healthcare</div>
+    <h2 class="chapter-role" data-reveal>Junior Engineer</h2>
+    <p class="chapter-dates" data-reveal>Aug 2015 &mdash; May 2016 &middot; 10 months</p>
+    <div class="chapter-narrative" data-typewriter="2015: The first professional chapter in America &mdash; building healthcare solutions from day one."></div>
+    <p class="chapter-desc" data-reveal>The very first role in the United States after completing the Master's degree. At Orbit Healthcare in New Jersey, built healthcare applications using AngularJS and .NET, laying the foundation for a career in frontend engineering while learning to deliver software that impacts real lives.</p>
+    <div class="chapter-skills" data-reveal>
+      <span class="skill-tag">AngularJS</span>
+      <span class="skill-tag">.NET</span>
+      <span class="skill-tag">JavaScript</span>
+      <span class="skill-tag">HTML5</span>
+      <span class="skill-tag">CSS3</span>
+      <span class="skill-tag">Healthcare IT</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH3: STATE STREET -->
+<section class="section chapter" id="ch-ss" data-chapter="2" data-color="194,24,91">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; Boston, Massachusetts</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(194,24,91,0.15);color:#e91e63;border:1px solid rgba(194,24,91,0.3)">State Street</div>
+    <h2 class="chapter-role" data-reveal>Frontend Web Developer</h2>
+    <p class="chapter-dates" data-reveal>Jun 2016 &mdash; Dec 2017 &middot; 1 yr 7 mo</p>
+    <div class="chapter-narrative" data-typewriter="2016: The financial hub &mdash; building interfaces that move markets."></div>
+    <p class="chapter-desc" data-reveal>Moved to Boston to join one of the world's largest financial services companies. At State Street, built frontend applications that powered institutional investment platforms, sharpening skills in coding standards, software development lifecycle, and enterprise-grade UI delivery.</p>
+    <div class="chapter-skills" data-reveal>
+      <span class="skill-tag">Coding Standards</span>
+      <span class="skill-tag">Software Development</span>
+      <span class="skill-tag">JavaScript</span>
+      <span class="skill-tag">HTML5</span>
+      <span class="skill-tag">CSS3</span>
+      <span class="skill-tag">REST APIs</span>
+      <span class="skill-tag">Responsive Design</span>
+      <span class="skill-tag">Git</span>
+      <span class="skill-tag">Agile</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH4: IBM -->
+<section class="section chapter" id="ch-ibm" data-chapter="3" data-color="0,98,255">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; Schaumburg, Illinois</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(0,98,255,0.15);color:#0062ff;border:1px solid rgba(0,98,255,0.3)">IBM</div>
+    <h2 class="chapter-role" data-reveal>Web Developer</h2>
+    <p class="chapter-dates" data-reveal>Aug 2015 &mdash; Mar 2016 &middot; 8 months</p>
+    <div class="chapter-narrative" data-typewriter="Working with one of tech's most iconic names &mdash; learning enterprise rigor."></div>
+    <p class="chapter-desc" data-reveal>Joined one of the most storied names in technology. At IBM, gained invaluable experience with enterprise-scale development processes, strict coding standards, and the discipline of building software that serves millions across the globe.</p>
+    <div class="chapter-skills" data-reveal>
+      <span class="skill-tag">Coding Standards</span>
+      <span class="skill-tag">Git</span>
+      <span class="skill-tag">Web Development</span>
+      <span class="skill-tag">Enterprise Software</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH5: AT&T -->
+<section class="section chapter" id="ch-att" data-chapter="4" data-color="0,159,219">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; Bothell, Washington</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(0,159,219,0.15);color:#009fdb;border:1px solid rgba(0,159,219,0.3)">AT&amp;T</div>
+    <h2 class="chapter-role" data-reveal>Senior Frontend Developer</h2>
+    <p class="chapter-dates" data-reveal>Jan 2018 &mdash; Dec 2018 &middot; 1 year</p>
+    <div class="chapter-narrative" data-typewriter="2018: The Pacific Northwest &mdash; leveling up to senior, leading code quality at scale."></div>
+    <p class="chapter-desc" data-reveal>Stepped into a senior role in the beautiful Pacific Northwest. Led code reviews, championed coding standards, and helped build performant, accessible frontend systems for one of America's largest telecommunications companies.</p>
+    <div class="chapter-skills" data-reveal>
+      <span class="skill-tag">Code Review</span>
+      <span class="skill-tag">Coding Standards</span>
+      <span class="skill-tag">React.js</span>
+      <span class="skill-tag">JavaScript</span>
+      <span class="skill-tag">TypeScript</span>
+      <span class="skill-tag">Node.js</span>
+      <span class="skill-tag">REST APIs</span>
+      <span class="skill-tag">Git</span>
+      <span class="skill-tag">CI/CD</span>
+      <span class="skill-tag">Web Performance</span>
+      <span class="skill-tag">Agile</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH6: CISCO -->
+<section class="section chapter" id="ch-cisco" data-chapter="5" data-color="4,159,217">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; San Jose, California</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(4,159,217,0.15);color:#049fd9;border:1px solid rgba(4,159,217,0.3)">Cisco</div>
+    <h2 class="chapter-role" data-reveal>Frontend Developer (Contract)</h2>
+    <p class="chapter-dates" data-reveal>2018 &middot; 3 months</p>
+    <div class="chapter-narrative" data-typewriter="2018: Silicon Valley calling &mdash; a brief but impactful stint at the heart of tech."></div>
+    <p class="chapter-desc" data-reveal>A focused 3-month contract in the heart of Silicon Valley with one of the world's largest networking companies. Contributed to frontend development efforts, bringing expertise in modern web technologies to Cisco's enterprise platforms.</p>
+    <div class="chapter-skills" data-reveal>
+      <span class="skill-tag">React.js</span>
+      <span class="skill-tag">JavaScript</span>
+      <span class="skill-tag">Enterprise UI</span>
+      <span class="skill-tag">REST APIs</span>
+      <span class="skill-tag">Agile</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH7: SYNCHRONY — STAMFORD -->
+<section class="section chapter" id="ch-sync-stam" data-chapter="6" data-color="227,24,55">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; Stamford, Connecticut</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(227,24,55,0.15);color:#e31837;border:1px solid rgba(227,24,55,0.3)">Synchrony</div>
+    <h2 class="chapter-role" data-reveal>The Defining Chapter Begins</h2>
+    <p class="chapter-dates" data-reveal>Jan 2019 &mdash; Apr 2022 &middot; 3 yr 4 mo</p>
+    <div class="chapter-narrative" data-typewriter="2019: The defining chapter begins &mdash; building digital banking at scale in the heart of Connecticut."></div>
+    <p class="chapter-desc" data-reveal>Joined Synchrony's Stamford headquarters as a Principal Frontend Engineer. Built enterprise-scale digital banking applications serving millions of customers, established frontend architecture patterns, and laid the foundation for what would become the longest and most transformative chapter in the journey.</p>
+    <div class="sync-timeline" data-reveal>
+      <div class="sync-item">
+        <h4>Principal Frontend Engineer</h4>
+        <p class="sync-dates">Jan 2019 &mdash; Apr 2022 &middot; 3 yr 4 mo &middot; On-site, Stamford CT</p>
+        <p>Built enterprise-scale digital banking apps serving millions of customers.</p>
       </div>
-      <ul class="mt-6 space-y-5">
-        {posts.map((post) => (
-          <li>
-            <a href={`/blog/${post.slug}/`} class="block group">
-              <p class="text-xs text-zinc-500 uppercase tracking-wide">
-                {post.data.publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
-              </p>
-              <p class="mt-1 text-lg font-medium group-hover:underline underline-offset-4">{post.data.title}</p>
-              <p class="mt-1 text-sm text-zinc-400 line-clamp-2">{post.data.description}</p>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  </main>
-</BaseLayout>
+    </div>
+    <div class="chapter-skills" data-reveal style="margin-top:1.5rem">
+      <span class="skill-tag">React.js</span>
+      <span class="skill-tag">TypeScript</span>
+      <span class="skill-tag">System Architecture</span>
+      <span class="skill-tag">AWS</span>
+      <span class="skill-tag">Amazon S3</span>
+      <span class="skill-tag">Node.js</span>
+      <span class="skill-tag">styled-components</span>
+      <span class="skill-tag">CI/CD</span>
+      <span class="skill-tag">Web Performance</span>
+    </div>
+  </div>
+</section>
+
+<!-- CH8: SYNCHRONY — DALLAS -->
+<section class="section chapter" id="ch-sync-dal" data-chapter="7" data-color="227,24,55">
+  <div class="chapter-inner">
+    <div class="chapter-location" data-reveal>&#127482;&#127480; Dallas, Texas (Remote)</div>
+    <div class="chapter-badge" data-reveal style="background:rgba(227,24,55,0.15);color:#e31837;border:1px solid rgba(227,24,55,0.3)">Synchrony</div>
+    <h2 class="chapter-role" data-reveal>From Engineer to Architect</h2>
+    <p class="chapter-dates" data-reveal>Apr 2022 &mdash; Present &middot; 3+ years</p>
+    <div class="chapter-narrative" data-typewriter="2022: Leveling up &mdash; from engineering manager to architect, shaping digital banking from Dallas."></div>
+    <p class="chapter-desc" data-reveal>Relocated to Dallas and transitioned into leadership. Grew from Engineering Manager leading cross-functional teams to Architect Manager designing large-scale customer-facing web applications. The journey from writing code to designing systems that shape how millions interact with digital banking.</p>
+    <div class="sync-timeline" data-reveal>
+      <div class="sync-item">
+        <h4>Engineering Manager</h4>
+        <p class="sync-dates">Apr 2022 &mdash; Sep 2025 &middot; 3 yr 6 mo</p>
+        <p>Combined technical leadership with hands-on engineering, leading cross-functional teams.</p>
+      </div>
+      <div class="sync-item">
+        <h4>Architect Manager</h4>
+        <p class="sync-dates">Mar 2025 &mdash; Present &middot; Remote, Dallas TX</p>
+        <p>Designs large-scale customer-facing web applications for digital banking.</p>
+      </div>
+    </div>
+    <div class="chapter-skills" data-reveal style="margin-top:1.5rem">
+      <span class="skill-tag">System Architecture</span>
+      <span class="skill-tag">Team Leadership</span>
+      <span class="skill-tag">React.js</span>
+      <span class="skill-tag">TypeScript</span>
+      <span class="skill-tag">AWS</span>
+      <span class="skill-tag">Code Review</span>
+      <span class="skill-tag">Architecture</span>
+      <span class="skill-tag">CI/CD</span>
+      <span class="skill-tag">Web Performance</span>
+      <span class="skill-tag">Mentoring</span>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section class="section" id="skills">
+  <div style="max-width:1100px;width:100%;padding:0 1rem;display:flex;flex-direction:column;align-items:center">
+    <h2 class="skills-title">Technical Arsenal</h2>
+    <p class="skills-subtitle">12+ years of accumulated expertise across the full stack</p>
+    <div class="skills-grid">
+      <div class="skill-card" data-skill-card>
+        <h3><span style="color:var(--teal)">&#9672;</span> Frontend Engineering</h3>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>React.js</span><span>97%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="97" style="background:linear-gradient(90deg,var(--teal),#22d3ee)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>JavaScript</span><span>95%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="95" style="background:linear-gradient(90deg,var(--gold),#fbbf24)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>TypeScript</span><span>92%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="92" style="background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>styled-components</span><span>90%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="90" style="background:linear-gradient(90deg,#db7093,#f0a0c0)"></div></div></div>
+      </div>
+      <div class="skill-card" data-skill-card>
+        <h3><span style="color:var(--gold)">&#9672;</span> Cloud &amp; Backend</h3>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>Amazon S3</span><span>90%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="90" style="background:linear-gradient(90deg,#ff9900,#ffb84d)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>AWS</span><span>88%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="88" style="background:linear-gradient(90deg,#ff9900,#ffb84d)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>Node.js</span><span>85%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="85" style="background:linear-gradient(90deg,#68a063,#8cc84b)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>CI/CD</span><span>82%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="82" style="background:linear-gradient(90deg,var(--teal),#22d3ee)"></div></div></div>
+      </div>
+      <div class="skill-card" data-skill-card>
+        <h3><span style="color:#e31837">&#9672;</span> Leadership &amp; Architecture</h3>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>System Architecture</span><span>93%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="93" style="background:linear-gradient(90deg,#e31837,#f04060)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>Code Review</span><span>95%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="95" style="background:linear-gradient(90deg,var(--gold),#fbbf24)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>Team Leadership</span><span>90%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="90" style="background:linear-gradient(90deg,#a855f7,#c084fc)"></div></div></div>
+        <div class="skill-bar-item"><div class="skill-bar-label"><span>Git</span><span>95%</span></div><div class="skill-bar-track"><div class="skill-bar-fill" data-width="95" style="background:linear-gradient(90deg,#f05032,#f07050)"></div></div></div>
+      </div>
+    </div>
+    <div class="tags-cloud" id="tags-cloud">
+      <span class="skill-tag">React.js</span>
+      <span class="skill-tag">JavaScript</span>
+      <span class="skill-tag">TypeScript</span>
+      <span class="skill-tag">AWS</span>
+      <span class="skill-tag">Amazon S3</span>
+      <span class="skill-tag">Node.js</span>
+      <span class="skill-tag">styled-components</span>
+      <span class="skill-tag">HTML5</span>
+      <span class="skill-tag">CSS3</span>
+      <span class="skill-tag">REST APIs</span>
+      <span class="skill-tag">Git</span>
+      <span class="skill-tag">Code Review</span>
+      <span class="skill-tag">Agile</span>
+      <span class="skill-tag">CI/CD</span>
+      <span class="skill-tag">System Design</span>
+      <span class="skill-tag">Responsive Design</span>
+      <span class="skill-tag">Coding Standards</span>
+      <span class="skill-tag">Web Performance</span>
+      <span class="skill-tag">Architecture</span>
+      <span class="skill-tag">Team Leadership</span>
+    </div>
+  </div>
+</section>
+
+<!-- BEYOND CODE -->
+<section class="section" id="beyond">
+  <div style="max-width:900px;width:100%;padding:0 1rem;display:flex;flex-direction:column;align-items:center">
+    <h2 class="beyond-title">Beyond Code</h2>
+    <div class="beyond-grid">
+      <div class="beyond-card" data-beyond>
+        <h3>&#127952; Volleyball</h3>
+        <span class="badge-sm">Team Marvels &mdash; Orange Jersey</span>
+        <p>Beyond the keyboard, the court is where strategy meets adrenaline. A proud member of Team Marvels, competing in organized leagues and charity events, including the 2016 Volleyball Charity Challenge.</p>
+        <div class="beyond-highlights">
+          <span>&#127942; Trophy Winner</span>
+          <span>2016 Charity Challenge</span>
+          <span>Competitive Player</span>
+        </div>
+        <canvas id="volleyball-canvas" width="220" height="150"></canvas>
+      </div>
+      <div class="beyond-card" data-beyond>
+        <h3>&#9997;&#65039; Blogging</h3>
+        <span class="badge-sm">Sharing Knowledge</span>
+        <p>Writing about frontend engineering, architecture patterns, and lessons learned from building large-scale applications. Notes posted here first; cross-posted to Medium and Dev.to with canonical links back.</p>
+        <div class="beyond-highlights">
+          <span>Frontend Engineering</span>
+          <span>Architecture</span>
+          <span>Best Practices</span>
+        </div>
+        <a href="/blog/" class="blog-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          Read the blog &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI PROJECTS -->
+<section class="section" id="ai-projects">
+  <div style="max-width:1100px;width:100%;padding:0 1rem;display:flex;flex-direction:column;align-items:center">
+    <span class="ai-badge">&#129302; Built with AI</span>
+    <h2 class="ai-title">Projects Built with Claude Code</h2>
+    <p class="ai-subtitle">Four production applications shipped in <strong>5 days</strong> &mdash; powered by <strong>Claude Code</strong> (Anthropic) and a decade of engineering experience.</p>
+    <div class="ai-grid">
+
+      <div class="ai-card" data-ai-card>
+        <h3>Portfolio</h3>
+        <div class="ai-card-type">Static Site &bull; GitHub Pages</div>
+        <p>An interactive, animated narrative of my engineering career. Features a geographic journey map, canvas particle system, physics-based volleyball sim, and animated skill bars.</p>
+        <div class="ai-card-tech">
+          <span>HTML5</span>
+          <span>CSS3</span>
+          <span>Canvas API</span>
+          <span>Vanilla JS</span>
+        </div>
+        <div class="ai-card-links">
+          <a href="https://ajay-kandakatla.github.io/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            Live
+          </a>
+          <a href="https://github.com/Ajay-Kandakatla/Ajay-Kandakatla.github.io" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+
+      <div class="ai-card" data-ai-card>
+        <h3>ArchFlow</h3>
+        <div class="ai-card-type">Full-Stack &bull; Railway + MongoDB Atlas</div>
+        <p>Architecture diagram builder with drag-and-drop nodes, smart connections, auto-save, image uploads, templates, and an AI prompt panel. Fully persisted with MongoDB Atlas.</p>
+        <div class="ai-card-tech">
+          <span>React 19</span>
+          <span>TypeScript</span>
+          <span>Express.js</span>
+          <span>MongoDB Atlas</span>
+          <span>JWT</span>
+          <span>Google OAuth</span>
+          <span>GridFS</span>
+          <span>Playwright</span>
+        </div>
+        <div class="ai-card-links">
+          <a href="https://archflow-production.up.railway.app/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            Live
+          </a>
+          <a href="https://github.com/Ajay-Kandakatla/archflow" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+
+      <div class="ai-card" data-ai-card>
+        <h3>Nexus</h3>
+        <div class="ai-card-type">Credit Platform &bull; Vercel</div>
+        <p>Next-gen credit servicing platform with a plugin-based architecture, financial health dashboard, AI co-pilot assistant, dispute wizard, and event-driven communication.</p>
+        <div class="ai-card-tech">
+          <span>React 19</span>
+          <span>TypeScript</span>
+          <span>Zustand</span>
+          <span>React Query</span>
+          <span>Framer Motion</span>
+          <span>Zod</span>
+          <span>Vitest</span>
+          <span>MSW</span>
+        </div>
+        <div class="ai-card-links">
+          <a href="https://nexus-platform1.vercel.app/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            Live
+          </a>
+          <a href="https://github.com/Ajay-Kandakatla/nexus" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </div>
+
+      <div class="ai-card" data-ai-card>
+        <h3>KidsDraw</h3>
+        <div class="ai-card-type">Drawing App &bull; Vercel + Supabase</div>
+        <p>A touch-optimized drawing app built for my daughter. Features freehand drawing with Konva.js, reference image search, cloud-saved gallery, and PWA support for offline use.</p>
+        <div class="ai-card-tech">
+          <span>React 19</span>
+          <span>TypeScript</span>
+          <span>Konva.js</span>
+          <span>Supabase</span>
+          <span>Zustand</span>
+          <span>Pixabay API</span>
+          <span>PWA</span>
+        </div>
+        <div class="ai-card-links">
+          <a href="https://kidsdraw-orcin.vercel.app/" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+            Live
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="ai-powered-by">
+      <h4>Powered by Claude Code + Claude Opus</h4>
+      <p>All four projects were built in <strong>5 days</strong> using <strong>Claude Code</strong> (Anthropic's AI coding agent) powered by <strong>Claude Opus</strong>. I brought the architectural vision and product decisions; Claude Code handled the execution velocity &mdash; from React components to Express middleware to MongoDB schemas. All projects are open source on <a href="https://github.com/Ajay-Kandakatla" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;font-weight:600">GitHub</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECT -->
+<section class="section" id="connect">
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <h2 class="connect-title">Build Something Together</h2>
+    <p class="connect-desc">Whether it's architecting the next great web platform, mentoring engineering teams, or just geeking out over frontend performance &mdash; let's connect.</p>
+    <div class="connect-links">
+      <a href="https://github.com/ajay-kandakatla" target="_blank" rel="noopener" class="connect-link">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+      <a href="https://medium.com/@ajaykandakatla" target="_blank" rel="noopener" class="connect-link">
+        <svg viewBox="0 0 24 24"><path d="M13.54 12a6.8 6.8 0 01-6.77 6.82A6.8 6.8 0 010 12a6.8 6.8 0 016.77-6.82A6.8 6.8 0 0113.54 12zm7.42 0c0 3.54-1.51 6.42-3.38 6.42S14.2 15.54 14.2 12s1.51-6.42 3.38-6.42 3.38 2.88 3.38 6.42zm2.94 0c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75c.66 0 1.19 2.58 1.19 5.75z"/></svg>
+        Medium Blog
+      </a>
+    </div>
+  </div>
+  <div class="footer">&copy; 2026 Ajay Kandakatla. Crafted with passion, code, and late-night coffee.</div>
+</section>
+
+<script is:inline>
+(function(){
+'use strict';
+
+var $=function(s){return document.querySelector(s)};
+var $$=function(s){return document.querySelectorAll(s)};
+
+/* ===== MOBILE MENU ===== */
+var hamburger=$('#hamburger');
+var mobileMenu=$('#mobile-menu');
+hamburger.addEventListener('click',function(){mobileMenu.classList.toggle('open')});
+window.closeMobile=function(){mobileMenu.classList.remove('open')};
+
+/* ===== HERO NAME 3D FLIP ===== */
+var nameText='Ajay Kandakatla';
+var nameEl=$('#hero-name');
+var letters=nameText.split('');
+for(var i=0;i<letters.length;i++){
+  var span=document.createElement('span');
+  span.className='letter'+(letters[i]===' '?' space':'');
+  span.textContent=letters[i]===' '?'\u00A0':letters[i];
+  span.style.color=i<4?'var(--gold)':'var(--text)';
+  nameEl.appendChild(span);
+}
+var letterEls=nameEl.querySelectorAll('.letter');
+for(var li=0;li<letterEls.length;li++){
+  (function(idx){
+    setTimeout(function(){letterEls[idx].classList.add('revealed')},200+idx*80);
+  })(li);
+}
+setTimeout(function(){
+  $('#hero-subtitle').classList.add('visible');
+  $('#hero-tagline').classList.add('visible');
+  $('#hero-counters').classList.add('visible');
+  $('#hero-buttons').classList.add('visible');
+  $('#hero-badge').classList.add('visible');
+  $('#scroll-indicator').classList.add('visible');
+},1200);
+
+/* ===== COUNTER ANIMATOR ===== */
+var countersAnimated=false;
+function animateCounters(){
+  if(countersAnimated)return;
+  countersAnimated=true;
+  var counters=$$('.counter-value');
+  for(var ci=0;ci<counters.length;ci++){
+    (function(el){
+      var target=parseInt(el.dataset.target);
+      var current=0;
+      var duration=1500;
+      var startTime=null;
+      function step(ts){
+        if(!startTime)startTime=ts;
+        var progress=Math.min((ts-startTime)/duration,1);
+        var eased=1-Math.pow(1-progress,3);
+        current=Math.round(eased*target);
+        el.textContent=current+'+';
+        if(progress<1)requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    })(counters[ci]);
+  }
+}
+setTimeout(animateCounters,1800);
+
+/* ===== PARTICLE SYSTEM ===== */
+var heroCanvas=$('#hero-canvas');
+var hCtx=heroCanvas.getContext('2d');
+var particles=[];
+var mouseX=-1000,mouseY=-1000;
+
+function resizeHeroCanvas(){
+  heroCanvas.width=heroCanvas.parentElement.offsetWidth;
+  heroCanvas.height=heroCanvas.parentElement.offsetHeight;
+}
+resizeHeroCanvas();
+window.addEventListener('resize',resizeHeroCanvas);
+heroCanvas.addEventListener('mousemove',function(e){
+  var r=heroCanvas.getBoundingClientRect();
+  mouseX=e.clientX-r.left;mouseY=e.clientY-r.top;
+});
+heroCanvas.addEventListener('mouseleave',function(){mouseX=-1000;mouseY=-1000});
+
+function Particle(){
+  this.x=Math.random()*heroCanvas.width;
+  this.y=Math.random()*heroCanvas.height;
+  this.vx=(Math.random()-0.5)*0.5;
+  this.vy=(Math.random()-0.5)*0.5;
+  this.r=Math.random()*2+1;
+  this.isGold=Math.random()>0.5;
+  this.alpha=Math.random()*0.5+0.3;
+}
+Particle.prototype.update=function(){
+  var dx=this.x-mouseX,dy=this.y-mouseY;
+  var dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<120&&dist>0){
+    var f=(120-dist)/120*0.3;
+    this.vx+=dx/dist*f;
+    this.vy+=dy/dist*f;
+  }
+  this.vx*=0.98;this.vy*=0.98;
+  this.x+=this.vx;this.y+=this.vy;
+  if(this.x<0||this.x>heroCanvas.width)this.vx*=-1;
+  if(this.y<0||this.y>heroCanvas.height)this.vy*=-1;
+  this.x=Math.max(0,Math.min(heroCanvas.width,this.x));
+  this.y=Math.max(0,Math.min(heroCanvas.height,this.y));
+};
+Particle.prototype.draw=function(){
+  hCtx.beginPath();
+  hCtx.arc(this.x,this.y,this.r,0,Math.PI*2);
+  hCtx.fillStyle=this.isGold?'rgba(245,158,11,'+this.alpha+')':'rgba(6,182,212,'+this.alpha+')';
+  hCtx.fill();
+};
+
+for(var pi=0;pi<70;pi++)particles.push(new Particle());
+
+function drawParticles(){
+  hCtx.clearRect(0,0,heroCanvas.width,heroCanvas.height);
+  for(var i=0;i<particles.length;i++){
+    particles[i].update();
+    particles[i].draw();
+  }
+  for(var a=0;a<particles.length;a++){
+    for(var b=a+1;b<particles.length;b++){
+      var dx=particles[a].x-particles[b].x;
+      var dy=particles[a].y-particles[b].y;
+      var dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        hCtx.beginPath();
+        hCtx.moveTo(particles[a].x,particles[a].y);
+        hCtx.lineTo(particles[b].x,particles[b].y);
+        hCtx.strokeStyle='rgba(245,158,11,'+(1-dist/120)*0.12+')';
+        hCtx.lineWidth=0.5;
+        hCtx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+/* ===== SCROLL ENGINE ===== */
+var progressBar=$('#progress-bar');
+var nav=$('#nav');
+var sectionIds=['hero','map-section','ch-wilm','ch-orbit','ch-ss','ch-ibm','ch-att','ch-cisco','ch-sync-stam','ch-sync-dal','skills','beyond','ai-projects','connect'];
+var minimapDots=$$('.minimap-dot');
+var routePath=$('#route-path');
+var airplane=$('#airplane');
+var miniOverlay=$('#mini-map-overlay');
+var miniRoute=$('#mini-route');
+var miniAirplane=$('#mini-airplane');
+var miniCities=$$('.mini-city');
+var mapCities=$$('.map-city');
+var chapterSections=$$('.chapter');
+
+var routeLength=0;
+var miniRouteLength=0;
+try{
+  routeLength=routePath.getTotalLength();
+  routePath.style.strokeDasharray=routeLength;
+  routePath.style.strokeDashoffset=routeLength;
+}catch(e){}
+try{
+  miniRouteLength=miniRoute.getTotalLength();
+  miniRoute.style.strokeDasharray=miniRouteLength;
+  miniRoute.style.strokeDashoffset=miniRouteLength;
+}catch(e){}
+
+function getActiveSection(){
+  var scrollY=window.scrollY+window.innerHeight*0.4;
+  var active=0;
+  for(var i=0;i<sectionIds.length;i++){
+    var el=document.getElementById(sectionIds[i]);
+    if(el&&el.offsetTop<=scrollY)active=i;
+  }
+  return active;
+}
+
+function getChapterProgress(){
+  var chArr=Array.prototype.slice.call(chapterSections);
+  if(!chArr.length)return{index:0,progress:0};
+  var firstTop=chArr[0].offsetTop;
+  var lastBottom=chArr[chArr.length-1].offsetTop+chArr[chArr.length-1].offsetHeight;
+  var scrollY=window.scrollY+window.innerHeight*0.5;
+  if(scrollY<firstTop)return{index:0,progress:0};
+  if(scrollY>lastBottom)return{index:chArr.length-1,progress:1};
+  var totalRange=lastBottom-firstTop;
+  var rawProgress=Math.max(0,Math.min(1,(scrollY-firstTop)/totalRange));
+  return{index:Math.min(Math.floor(rawProgress*chArr.length),chArr.length-1),progress:rawProgress};
+}
+
+function scrollEngine(){
+  var scrollTop=window.scrollY||document.documentElement.scrollTop;
+  var docHeight=document.documentElement.scrollHeight-window.innerHeight;
+  var globalProgress=docHeight>0?scrollTop/docHeight:0;
+  progressBar.style.width=(globalProgress*100)+'%';
+  nav.classList.toggle('scrolled',scrollTop>50);
+
+  var active=getActiveSection();
+  for(var i=0;i<minimapDots.length;i++){
+    minimapDots[i].classList.toggle('active',i===active);
+  }
+
+  var chProgress=getChapterProgress();
+  var routeProgress=chProgress.progress;
+
+  if(routeLength>0){
+    routePath.style.strokeDashoffset=routeLength*(1-routeProgress);
+    try{
+      var p=routePath.getPointAtLength(routeProgress*routeLength);
+      airplane.setAttribute('x',p.x);
+      airplane.setAttribute('y',p.y-12);
+    }catch(e){}
+  }
+  if(miniRouteLength>0){
+    miniRoute.style.strokeDashoffset=miniRouteLength*(1-routeProgress);
+    try{
+      var mp=miniRoute.getPointAtLength(routeProgress*miniRouteLength);
+      miniAirplane.setAttribute('x',mp.x);
+      miniAirplane.setAttribute('y',mp.y-8);
+    }catch(e){}
+  }
+
+  var activeIdx=chProgress.index;
+  for(var mi=0;mi<mapCities.length;mi++){
+    mapCities[mi].classList.toggle('active',mi<=activeIdx);
+    var circ=mapCities[mi].querySelector('circle');
+    if(mi<=activeIdx){
+      circ.setAttribute('r','7');
+      circ.setAttribute('fill','#f59e0b');
+    }else{
+      circ.setAttribute('r','5');
+      circ.setAttribute('fill','#444');
+    }
+  }
+  for(var mci=0;mci<miniCities.length;mci++){
+    var isAct=mci<=activeIdx;
+    miniCities[mci].setAttribute('fill',isAct?'#f59e0b':'#666');
+    miniCities[mci].setAttribute('r',isAct?'4':'3');
+  }
+
+  var inChapterZone=active>=2&&active<=7;
+  miniOverlay.classList.toggle('visible',inChapterZone);
+
+  requestAnimationFrame(scrollEngine);
+}
+scrollEngine();
+
+/* Minimap click */
+for(var di=0;di<minimapDots.length;di++){
+  (function(dot){
+    dot.addEventListener('click',function(){
+      var el=document.getElementById(dot.dataset.target);
+      if(el)el.scrollIntoView({behavior:'smooth'});
+    });
+  })(minimapDots[di]);
+}
+
+/* Map city click */
+for(var mci2=0;mci2<mapCities.length;mci2++){
+  (function(city){
+    city.addEventListener('click',function(){
+      var t=city.dataset.target;
+      if(t){var el=document.getElementById(t);if(el)el.scrollIntoView({behavior:'smooth'})}
+    });
+  })(mapCities[mci2]);
+}
+
+/* Nav active */
+var navLinks=$$('.nav-links a');
+function updateNavLinks(){
+  var active=getActiveSection();
+  var map=[0,1,1,1,1,1,1,1,1,1,2,3,4,5];
+  for(var ni=0;ni<navLinks.length;ni++){
+    navLinks[ni].classList.toggle('active',ni===(map[active]||0));
+  }
+}
+window.addEventListener('scroll',updateNavLinks,{passive:true});
+
+/* ===== CHAPTER REVEALER ===== */
+var revealObserver=new IntersectionObserver(function(entries){
+  for(var ei=0;ei<entries.length;ei++){
+    if(entries[ei].isIntersecting){
+      var els=entries[ei].target.querySelectorAll('[data-reveal]');
+      for(var ri=0;ri<els.length;ri++){
+        (function(el,delay){
+          setTimeout(function(){el.classList.add('revealed')},delay);
+        })(els[ri],ri*150);
+      }
+      var skills=entries[ei].target.querySelectorAll('.skill-tag');
+      for(var si=0;si<skills.length;si++){
+        (function(tag,delay){
+          setTimeout(function(){tag.classList.add('visible')},delay);
+        })(skills[si],600+si*80);
+      }
+      revealObserver.unobserve(entries[ei].target);
+    }
+  }
+},{threshold:0.15});
+for(var chi=0;chi<chapterSections.length;chi++){
+  revealObserver.observe(chapterSections[chi]);
+}
+
+/* ===== TYPEWRITER ===== */
+var typewriterEls=$$('[data-typewriter]');
+var twObserver=new IntersectionObserver(function(entries){
+  for(var ti=0;ti<entries.length;ti++){
+    if(entries[ti].isIntersecting){
+      var el=entries[ti].target;
+      var text=el.getAttribute('data-typewriter');
+      el.innerHTML='<span class="tw-text"></span><span class="typewriter-cursor">|</span>';
+      var twText=el.querySelector('.tw-text');
+      var idx=0;
+      (function(t,txt,container){
+        var interval=setInterval(function(){
+          if(idx<txt.length){
+            t.textContent+=txt[idx];
+            idx++;
+          }else{
+            clearInterval(interval);
+          }
+        },40);
+      })(twText,text,el);
+      twObserver.unobserve(el);
+    }
+  }
+},{threshold:0.3});
+for(var twi=0;twi<typewriterEls.length;twi++){
+  twObserver.observe(typewriterEls[twi]);
+}
+
+/* ===== CHAPTER AMBIENT GLOW ===== */
+for(var gi=0;gi<chapterSections.length;gi++){
+  var color=chapterSections[gi].dataset.color;
+  if(color){
+    var glowDiv=document.createElement('div');
+    glowDiv.style.cssText='position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 20% 50%,rgba('+color+',0.08) 0%,transparent 70%);pointer-events:none;z-index:0';
+    chapterSections[gi].insertBefore(glowDiv,chapterSections[gi].firstChild);
+  }
+}
+
+/* ===== SKILL BARS ===== */
+var skillCardObserver=new IntersectionObserver(function(entries){
+  for(var sci=0;sci<entries.length;sci++){
+    if(entries[sci].isIntersecting){
+      entries[sci].target.classList.add('visible');
+      var fills=entries[sci].target.querySelectorAll('.skill-bar-fill');
+      for(var fi=0;fi<fills.length;fi++){
+        (function(fill,delay){
+          setTimeout(function(){fill.style.width=fill.dataset.width+'%'},delay);
+        })(fills[fi],200+fi*150);
+      }
+      skillCardObserver.unobserve(entries[sci].target);
+    }
+  }
+},{threshold:0.3});
+var skillCards=$$('[data-skill-card]');
+for(var sk=0;sk<skillCards.length;sk++){
+  skillCardObserver.observe(skillCards[sk]);
+}
+
+/* Tags cloud */
+var tagsObserver=new IntersectionObserver(function(entries){
+  for(var tci=0;tci<entries.length;tci++){
+    if(entries[tci].isIntersecting){
+      var tags=entries[tci].target.querySelectorAll('.skill-tag');
+      for(var tgi=0;tgi<tags.length;tgi++){
+        (function(tag,delay){
+          setTimeout(function(){tag.classList.add('visible')},delay);
+        })(tags[tgi],tgi*60);
+      }
+      tagsObserver.unobserve(entries[tci].target);
+    }
+  }
+},{threshold:0.2});
+var tagsCloud=$('#tags-cloud');
+if(tagsCloud)tagsObserver.observe(tagsCloud);
+
+/* ===== BEYOND CARDS ===== */
+var beyondObserver=new IntersectionObserver(function(entries){
+  for(var bi=0;bi<entries.length;bi++){
+    if(entries[bi].isIntersecting){
+      entries[bi].target.classList.add('visible');
+      beyondObserver.unobserve(entries[bi].target);
+    }
+  }
+},{threshold:0.2});
+var beyondCards=$$('[data-beyond]');
+for(var bc=0;bc<beyondCards.length;bc++){
+  beyondObserver.observe(beyondCards[bc]);
+}
+
+/* ===== AI PROJECTS REVEAL ===== */
+var aiObserver=new IntersectionObserver(function(entries){
+  for(var ai=0;ai<entries.length;ai++){
+    if(entries[ai].isIntersecting){
+      entries[ai].target.classList.add('visible');
+      aiObserver.unobserve(entries[ai].target);
+    }
+  }
+},{threshold:0.15});
+var aiCards=$$('[data-ai-card]');
+for(var ac=0;ac<aiCards.length;ac++){
+  aiCards[ac].style.transitionDelay=(ac*0.15)+'s';
+  aiObserver.observe(aiCards[ac]);
+}
+
+/* ===== VOLLEYBALL PHYSICS ===== */
+var vCanvas=$('#volleyball-canvas');
+var vCtx=vCanvas.getContext('2d');
+var ballX=110,ballY=30,ballVX=0.8,ballVY=0,ballR=12;
+var gravity=0.25,restitution=0.72,friction=0.999;
+var vAnimating=false;
+
+function drawVolleyball(){
+  vCtx.clearRect(0,0,vCanvas.width,vCanvas.height);
+  vCtx.strokeStyle='rgba(245,158,11,0.15)';
+  vCtx.lineWidth=1;
+  vCtx.setLineDash([4,4]);
+  vCtx.beginPath();
+  vCtx.moveTo(0,vCanvas.height-10);
+  vCtx.lineTo(vCanvas.width,vCanvas.height-10);
+  vCtx.stroke();
+  vCtx.setLineDash([]);
+
+  vCtx.strokeStyle='rgba(255,255,255,0.1)';
+  vCtx.lineWidth=2;
+  vCtx.beginPath();
+  vCtx.moveTo(vCanvas.width/2,vCanvas.height-10);
+  vCtx.lineTo(vCanvas.width/2,vCanvas.height-60);
+  vCtx.stroke();
+
+  var shadowY=vCanvas.height-10;
+  var shadowScale=1-((shadowY-ballY)/vCanvas.height)*0.5;
+  vCtx.beginPath();
+  vCtx.ellipse(ballX,shadowY,ballR*shadowScale,3,0,0,Math.PI*2);
+  vCtx.fillStyle='rgba(0,0,0,0.3)';
+  vCtx.fill();
+
+  var grad=vCtx.createRadialGradient(ballX-3,ballY-3,2,ballX,ballY,ballR);
+  grad.addColorStop(0,'#ffb347');
+  grad.addColorStop(0.7,'#f59e0b');
+  grad.addColorStop(1,'#d97706');
+  vCtx.beginPath();
+  vCtx.arc(ballX,ballY,ballR,0,Math.PI*2);
+  vCtx.fillStyle=grad;
+  vCtx.fill();
+
+  vCtx.strokeStyle='rgba(0,0,0,0.15)';
+  vCtx.lineWidth=1;
+  vCtx.beginPath();vCtx.arc(ballX,ballY,ballR*0.9,0.3,2.8);vCtx.stroke();
+  vCtx.beginPath();vCtx.arc(ballX,ballY,ballR*0.9,3.5,5.9);vCtx.stroke();
+}
+
+function updateVolleyball(){
+  if(!vAnimating)return;
+  ballVY+=gravity;
+  ballVX*=friction;
+  ballX+=ballVX;
+  ballY+=ballVY;
+
+  var floor=vCanvas.height-10-ballR;
+  if(ballY>=floor){
+    ballY=floor;
+    ballVY=-Math.abs(ballVY)*restitution;
+    if(Math.abs(ballVY)<1.5){
+      ballVY=-5-Math.random()*3;
+      ballVX=(Math.random()-0.5)*2;
+    }
+  }
+  if(ballX-ballR<0){ballX=ballR;ballVX=Math.abs(ballVX)}
+  if(ballX+ballR>vCanvas.width){ballX=vCanvas.width-ballR;ballVX=-Math.abs(ballVX)}
+
+  drawVolleyball();
+  requestAnimationFrame(updateVolleyball);
+}
+
+var vbObserver=new IntersectionObserver(function(entries){
+  for(var vi=0;vi<entries.length;vi++){
+    if(entries[vi].isIntersecting&&!vAnimating){
+      vAnimating=true;
+      updateVolleyball();
+    }
+    if(!entries[vi].isIntersecting){
+      vAnimating=false;
+    }
+  }
+},{threshold:0.2});
+vbObserver.observe(vCanvas);
+
+})();
+</script>
+</body>
+</html>
