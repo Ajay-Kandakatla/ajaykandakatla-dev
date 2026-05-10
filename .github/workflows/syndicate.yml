@@ -1,0 +1,65 @@
+name: Syndicate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/content/blog/**'
+
+concurrency:
+  group: syndicate
+  cancel-in-progress: false
+
+jobs:
+  syndicate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run syndication
+        env:
+          GITHUB_BEFORE: ${{ github.event.before }}
+          MEDIUM_TOKEN: ${{ secrets.MEDIUM_TOKEN }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          SITE_URL: https://ajaykandakatla.dev
+        run: npm run syndicate
+
+      - name: Email new posts to Substack
+        if: ${{ env.SUBSTACK_PUBLISH_EMAIL != '' && hashFiles('.syndicate-out/*.html') != '' }}
+        env:
+          SUBSTACK_PUBLISH_EMAIL: ${{ secrets.SUBSTACK_PUBLISH_EMAIL }}
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          from: ${{ secrets.SMTP_USER }}
+          to: ${{ secrets.SUBSTACK_PUBLISH_EMAIL }}
+          subject: "New post"
+          html_body: file://.syndicate-out/*.html
+          ignore_cert: false
+
+      - name: Commit ledger updates
+        run: |
+          if [[ -n "$(git status --porcelain .syndicated.json)" ]]; then
+            git config user.name "syndicate-bot"
+            git config user.email "syndicate-bot@users.noreply.github.com"
+            git add .syndicated.json
+            git commit -m "chore: update syndication ledger [skip ci]"
+            git push
+          else
+            echo "No ledger changes."
+          fi

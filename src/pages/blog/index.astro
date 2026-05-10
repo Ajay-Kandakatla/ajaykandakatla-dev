@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+---
+
+<BaseLayout
+  title="Blog — Ajay Kandakatla"
+  description="Notes on software, systems, and shipping."
+>
+  <main class="mx-auto max-w-2xl px-6 py-12">
+    <h1 class="text-3xl font-bold tracking-tight">Blog</h1>
+    <ul class="mt-10 space-y-8">
+      {posts.map((post) => (
+        <li>
+          <a href={`/blog/${post.slug}/`} class="block group">
+            <p class="text-xs text-zinc-500 uppercase tracking-wide">
+              {post.data.publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+            </p>
+            <h2 class="mt-1 text-xl font-semibold group-hover:underline underline-offset-4">{post.data.title}</h2>
+            <p class="mt-2 text-zinc-400 leading-relaxed">{post.data.description}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+</BaseLayout>

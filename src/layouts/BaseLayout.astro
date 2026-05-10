@@ -1,0 +1,73 @@
+---
+import { SEO } from 'astro-seo';
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  ogImage?: string;
+  type?: 'website' | 'article';
+  publishedAt?: string;
+  updatedAt?: string;
+  tags?: string[];
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage,
+  type = 'website',
+  publishedAt,
+  updatedAt,
+  tags = [],
+} = Astro.props;
+
+const fullCanonical = canonical ?? new URL(Astro.url.pathname, Astro.site).toString();
+const ogImageUrl = ogImage ?? new URL('/og-default.png', Astro.site).toString();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title="Ajay Kandakatla" href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <SEO
+      title={title}
+      description={description}
+      canonical={fullCanonical}
+      openGraph={{
+        basic: { title, type, image: ogImageUrl, url: fullCanonical },
+        optional: { description, siteName: 'Ajay Kandakatla' },
+        article:
+          type === 'article'
+            ? {
+                publishedTime: publishedAt,
+                modifiedTime: updatedAt,
+                authors: ['Ajay Kandakatla'],
+                tags,
+              }
+            : undefined,
+      }}
+      twitter={{ card: 'summary_large_image', creator: '@ajaykandakatla' }}
+    />
+    <slot name="head" />
+  </head>
+  <body class="bg-zinc-950 text-zinc-100 antialiased font-sans">
+    <header class="mx-auto max-w-2xl px-6 py-8 flex items-center justify-between">
+      <a href="/" class="font-semibold tracking-tight">Ajay Kandakatla</a>
+      <nav class="flex items-center gap-6 text-sm text-zinc-400">
+        <a href="/blog/" class="hover:text-zinc-100">Blog</a>
+        <a href="/projects/" class="hover:text-zinc-100">Projects</a>
+        <a href="/rss.xml" class="hover:text-zinc-100">RSS</a>
+      </nav>
+    </header>
+    <slot />
+    <footer class="mx-auto max-w-2xl px-6 py-12 text-sm text-zinc-500">
+      © {new Date().getFullYear()} Ajay Kandakatla
+    </footer>
+  </body>
+</html>
