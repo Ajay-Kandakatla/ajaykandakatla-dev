@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getAllTopics } from '../../../utils/topics';
+
+const topics = await getAllTopics();
+const url = new URL(Astro.url.pathname, Astro.site).toString();
+---
+
+<BaseLayout
+  title="Topics — Ajay Kandakatla"
+  description="All topics covered across the blog."
+  canonical={url}
+>
+  <main class="mx-auto max-w-2xl px-6 py-12">
+    <h1 class="text-3xl font-bold tracking-tight">Topics</h1>
+    <p class="mt-2 text-sm text-zinc-500">
+      {topics.length} {topics.length === 1 ? 'topic' : 'topics'} across the blog.
+    </p>
+
+    {topics.length === 0 ? (
+      <p class="mt-10 text-zinc-500">No topics yet — posts published with tags will surface here.</p>
+    ) : (
+      <ul class="mt-10 flex flex-wrap gap-3">
+        {topics.map((t) => (
+          <li>
+            <a
+              href={`/blog/topics/${t.slug}/`}
+              class="inline-flex items-baseline gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-sm hover:border-zinc-600 transition-colors"
+            >
+              <span>{t.display}</span>
+              <span class="text-xs text-zinc-500">{t.count}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </main>
+</BaseLayout>

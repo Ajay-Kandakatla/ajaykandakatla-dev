@@ -1,0 +1,71 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getAllTopics } from '../../../utils/topics';
+
+export async function getStaticPaths() {
+  const topics = await getAllTopics();
+  return topics.map((t) => ({
+    params: { topic: t.slug },
+    props: { topic: t },
+  }));
+}
+
+const { topic } = Astro.props;
+const url = new URL(Astro.url.pathname, Astro.site).toString();
+
+const itemList = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `Posts tagged "${topic.display}"`,
+  description: `All posts on ${topic.display} from Ajay Kandakatla.`,
+  url,
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: topic.count,
+    itemListElement: topic.posts.map((post, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`/blog/${post.slug}/`, Astro.site).toString(),
+      name: post.data.title,
+    })),
+  },
+};
+---
+
+<BaseLayout
+  title={`${topic.display} — Ajay Kandakatla`}
+  description={`Posts on ${topic.display}. ${topic.count} ${topic.count === 1 ? 'post' : 'posts'}.`}
+  canonical={url}
+>
+  <script
+    slot="head"
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(itemList)}
+  />
+  <main class="mx-auto max-w-2xl px-6 py-12">
+    <p class="text-xs text-zinc-500 uppercase tracking-wide">Topic</p>
+    <h1 class="mt-1 text-3xl font-bold tracking-tight">{topic.display}</h1>
+    <p class="mt-2 text-sm text-zinc-500">
+      {topic.count} {topic.count === 1 ? 'post' : 'posts'}
+    </p>
+
+    <ul class="mt-10 space-y-8">
+      {topic.posts.map((post) => (
+        <li>
+          <a href={`/blog/${post.slug}/`} class="block group">
+            <p class="text-xs text-zinc-500 uppercase tracking-wide">
+              {post.data.publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+            </p>
+            <h2 class="mt-1 text-xl font-semibold group-hover:underline underline-offset-4">{post.data.title}</h2>
+            <p class="mt-2 text-zinc-400 leading-relaxed">{post.data.description}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <p class="mt-12 text-sm text-zinc-500">
+      <a href="/blog/topics/" class="hover:text-zinc-300 underline underline-offset-4">← All topics</a>
+    </p>
+  </main>
+</BaseLayout>
