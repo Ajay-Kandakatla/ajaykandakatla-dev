@@ -30,7 +30,8 @@ jobs:
       - name: Run syndication
         env:
           GITHUB_BEFORE: ${{ github.event.before }}
-          MEDIUM_TOKEN: ${{ secrets.MEDIUM_TOKEN }}
+          HASHNODE_TOKEN: ${{ secrets.HASHNODE_TOKEN }}
+          HASHNODE_PUBLICATION_ID: ${{ secrets.HASHNODE_PUBLICATION_ID }}
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           SITE_URL: https://ajaykandakatla.dev
         run: npm run syndicate

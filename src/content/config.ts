@@ -14,11 +14,11 @@ const blog = defineCollection({
       draft: z.boolean().default(false),
       crossPost: z
         .object({
-          medium: z.boolean().default(false),
+          hashnode: z.boolean().default(false),
           substack: z.boolean().default(false),
           devto: z.boolean().default(false),
         })
-        .default({ medium: false, substack: false, devto: false }),
+        .default({ hashnode: false, substack: false, devto: false }),
     }),
 });
 

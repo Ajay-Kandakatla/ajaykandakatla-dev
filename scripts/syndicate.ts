@@ -1,8 +1,10 @@
 #!/usr/bin/env tsx
 /**
- * Syndicates newly-added blog posts to Medium / Dev.to.
- * Substack is handled separately by the GH Action's send-mail step
- * (Substack has no public publishing API, only publish-by-email).
+ * Syndicates newly-added blog posts to Hashnode (GraphQL) and Dev.to (REST).
+ * Substack has no public publishing API — handled separately by the GH Action's
+ * send-mail step, which mails the rendered HTML to Substack's publish-by-email
+ * address. Medium dropped here entirely: their integration token API no longer
+ * issues new tokens. If you want Medium, do it manually or via Playwright.
  *
  * Idempotent via .syndicated.json ledger. Only posts whose slug is missing
  * from the ledger entry for a given target get re-published.
@@ -16,7 +18,7 @@ const SITE = process.env.SITE_URL ?? 'https://ajaykandakatla.dev';
 const LEDGER_PATH = '.syndicated.json';
 const BLOG_DIR = 'src/content/blog';
 
-type SyndicationEntry = { medium?: string; substack?: string; devto?: string };
+type SyndicationEntry = { hashnode?: string; substack?: string; devto?: string };
 type Ledger = Record<string, SyndicationEntry>;
 
 async function loadLedger(): Promise<Ledger> {
@@ -32,7 +34,6 @@ async function saveLedger(ledger: Ledger): Promise<void> {
 }
 
 function getChangedPosts(): string[] {
-  // GH Action sets GITHUB_BEFORE; locally we fall back to HEAD~1
   const before = process.env.GITHUB_BEFORE;
   const range = before && before !== '0000000000000000000000000000000000000000'
     ? `${before}..HEAD`
@@ -65,46 +66,54 @@ async function markdownToHtml(md: string): Promise<string> {
   return String(out);
 }
 
-async function postToMedium(args: {
+async function postToHashnode(args: {
   title: string;
+  description: string;
   tags: string[];
-  html: string;
+  markdown: string;
   canonical: string;
 }): Promise<string> {
-  const token = process.env.MEDIUM_TOKEN;
-  if (!token) throw new Error('MEDIUM_TOKEN not set');
+  const token = process.env.HASHNODE_TOKEN;
+  const publicationId = process.env.HASHNODE_PUBLICATION_ID;
+  if (!token) throw new Error('HASHNODE_TOKEN not set');
+  if (!publicationId) throw new Error('HASHNODE_PUBLICATION_ID not set');
 
-  const userRes = await fetch('https://api.medium.com/v1/me', {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!userRes.ok) throw new Error(`Medium /me failed: ${userRes.status} ${await userRes.text()}`);
-  const userJson = (await userRes.json()) as { data: { id: string } };
+  const mutation = `
+    mutation PublishPost($input: PublishPostInput!) {
+      publishPost(input: $input) {
+        post { id slug url }
+      }
+    }
+  `;
 
-  const content =
-    `<h1>${escapeHtml(args.title)}</h1>` +
-    args.html +
-    `<hr/><p><em>Originally published at <a href="${args.canonical}">${args.canonical}</a></em></p>`;
+  const body = args.markdown +
+    `\n\n---\n\n*Originally published at [${args.canonical}](${args.canonical}).*`;
 
-  const res = await fetch(`https://api.medium.com/v1/users/${userJson.data.id}/posts`, {
+  const input = {
+    title: args.title,
+    contentMarkdown: body,
+    publicationId,
+    originalArticleURL: args.canonical,
+    metaTags: { description: args.description },
+    tags: args.tags
+      .slice(0, 5)
+      .map((t) => ({ name: t, slug: t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })),
+  };
+
+  const res = await fetch('https://gql.hashnode.com/', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      title: args.title,
-      contentFormat: 'html',
-      content,
-      canonicalUrl: args.canonical,
-      tags: args.tags.slice(0, 5),
-      publishStatus: 'public',
-    }),
+    headers: { 'Content-Type': 'application/json', Authorization: token },
+    body: JSON.stringify({ query: mutation, variables: { input } }),
   });
-  const body = (await res.json()) as { data?: { url: string }; errors?: unknown };
-  if (!res.ok || !body.data?.url) {
-    throw new Error(`Medium publish failed: ${JSON.stringify(body)}`);
+  const json = (await res.json()) as {
+    data?: { publishPost?: { post?: { url?: string } } };
+    errors?: Array<{ message: string }>;
+  };
+  if (!res.ok || json.errors || !json.data?.publishPost?.post?.url) {
+    const msg = json.errors?.map((e) => e.message).join('; ') ?? `HTTP ${res.status}`;
+    throw new Error(`Hashnode publish failed: ${msg}`);
   }
-  return body.data.url;
+  return json.data.publishPost.post.url;
 }
 
 async function postToDevto(args: {
@@ -165,17 +174,18 @@ async function main(): Promise<void> {
     const entry: SyndicationEntry = ledger[slug] ?? {};
     const html = await markdownToHtml(content);
 
-    if (cross.medium && !entry.medium) {
+    if (cross.hashnode && !entry.hashnode) {
       try {
-        entry.medium = await postToMedium({
+        entry.hashnode = await postToHashnode({
           title: data.title,
+          description: data.description,
           tags: data.tags ?? [],
-          html,
+          markdown: content,
           canonical,
         });
-        console.log(`✓ Medium: ${entry.medium}`);
+        console.log(`✓ Hashnode: ${entry.hashnode}`);
       } catch (e) {
-        console.error(`✗ Medium failed for ${slug}:`, (e as Error).message);
+        console.error(`✗ Hashnode failed for ${slug}:`, (e as Error).message);
       }
     }
 
@@ -194,11 +204,8 @@ async function main(): Promise<void> {
       }
     }
 
-    // Substack handled by GH Action's email step. We just write a marker
-    // so the action can pick up which files to mail and the ledger reflects intent.
     if (cross.substack && !entry.substack) {
       entry.substack = 'pending-email';
-      // Drop a sidecar HTML file the action can attach/inline.
       const htmlPath = `.syndicate-out/${slug}.html`;
       await fs.mkdir('.syndicate-out', { recursive: true });
       await fs.writeFile(
