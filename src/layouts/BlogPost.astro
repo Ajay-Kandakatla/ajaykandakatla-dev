@@ -11,6 +11,9 @@ const { entry } = Astro.props;
 const { data } = entry;
 const url = new URL(`/blog/${entry.slug}/`, Astro.site).toString();
 
+const coverSrc = data.coverUrl ?? (data.cover ? data.cover.src : undefined);
+const coverAlt = data.coverAlt ?? data.title;
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
@@ -22,6 +25,7 @@ const jsonLd = {
   mainEntityOfPage: url,
   url,
   keywords: data.tags.join(', '),
+  ...(coverSrc ? { image: coverSrc } : {}),
 };
 ---
 
@@ -33,6 +37,7 @@ const jsonLd = {
   publishedAt={data.publishedAt.toISOString()}
   updatedAt={data.updatedAt?.toISOString()}
   tags={data.tags}
+  ogImage={coverSrc}
 >
   <script
     slot="head"
@@ -41,6 +46,20 @@ const jsonLd = {
     set:html={JSON.stringify(jsonLd)}
   />
   <article class="mx-auto max-w-2xl px-6 py-12">
+    {coverSrc && (
+      <figure class="mb-10 -mx-6 sm:mx-0">
+        <img
+          src={coverSrc}
+          alt={coverAlt}
+          loading="eager"
+          fetchpriority="high"
+          class="w-full rounded-none sm:rounded-lg object-cover aspect-[16/9]"
+        />
+        {data.coverAlt && (
+          <figcaption class="mt-2 px-6 sm:px-0 text-xs text-zinc-500 italic">{data.coverAlt}</figcaption>
+        )}
+      </figure>
+    )}
     <header>
       <h1 class="text-4xl font-bold tracking-tight">{data.title}</h1>
       <p class="mt-3 text-sm text-zinc-500">

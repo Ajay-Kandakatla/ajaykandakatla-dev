@@ -10,6 +10,7 @@ const blog = defineCollection({
       updatedAt: z.coerce.date().optional(),
       tags: z.array(z.string()).default([]),
       cover: image().optional(),
+      coverUrl: z.string().url().optional(),
       coverAlt: z.string().optional(),
       draft: z.boolean().default(false),
       crossPost: z

@@ -72,6 +72,7 @@ async function postToHashnode(args: {
   tags: string[];
   markdown: string;
   canonical: string;
+  coverUrl?: string;
 }): Promise<string> {
   const token = process.env.HASHNODE_TOKEN;
   const publicationId = process.env.HASHNODE_PUBLICATION_ID;
@@ -89,7 +90,7 @@ async function postToHashnode(args: {
   const body = args.markdown +
     `\n\n---\n\n*Originally published at [${args.canonical}](${args.canonical}).*`;
 
-  const input = {
+  const input: Record<string, unknown> = {
     title: args.title,
     contentMarkdown: body,
     publicationId,
@@ -99,6 +100,9 @@ async function postToHashnode(args: {
       .slice(0, 5)
       .map((t) => ({ name: t, slug: t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') })),
   };
+  if (args.coverUrl) {
+    input.coverImageOptions = { coverImageURL: args.coverUrl };
+  }
 
   const res = await fetch('https://gql.hashnode.com/', {
     method: 'POST',
@@ -122,6 +126,7 @@ async function postToDevto(args: {
   tags: string[];
   markdown: string;
   canonical: string;
+  coverUrl?: string;
 }): Promise<string> {
   const key = process.env.DEVTO_API_KEY;
   if (!key) throw new Error('DEVTO_API_KEY not set');
@@ -130,19 +135,22 @@ async function postToDevto(args: {
     args.markdown +
     `\n\n---\n\n*Originally published at [${args.canonical}](${args.canonical}).*`;
 
+  const article: Record<string, unknown> = {
+    title: args.title,
+    body_markdown: body,
+    published: true,
+    canonical_url: args.canonical,
+    tags: args.tags.map((t) => t.replace(/[^a-z0-9]/gi, '').toLowerCase()).slice(0, 4),
+    description: args.description,
+  };
+  if (args.coverUrl) {
+    article.main_image = args.coverUrl;
+  }
+
   const res = await fetch('https://dev.to/api/articles', {
     method: 'POST',
     headers: { 'api-key': key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      article: {
-        title: args.title,
-        body_markdown: body,
-        published: true,
-        canonical_url: args.canonical,
-        tags: args.tags.map((t) => t.replace(/[^a-z0-9]/gi, '').toLowerCase()).slice(0, 4),
-        description: args.description,
-      },
-    }),
+    body: JSON.stringify({ article }),
   });
   const json = (await res.json()) as { url?: string };
   if (!res.ok || !json.url) {
@@ -182,6 +190,7 @@ async function main(): Promise<void> {
           tags: data.tags ?? [],
           markdown: content,
           canonical,
+          coverUrl: data.coverUrl,
         });
         console.log(`✓ Hashnode: ${entry.hashnode}`);
       } catch (e) {
@@ -197,6 +206,7 @@ async function main(): Promise<void> {
           tags: data.tags ?? [],
           markdown: content,
           canonical,
+          coverUrl: data.coverUrl,
         });
         console.log(`✓ Dev.to: ${entry.devto}`);
       } catch (e) {
