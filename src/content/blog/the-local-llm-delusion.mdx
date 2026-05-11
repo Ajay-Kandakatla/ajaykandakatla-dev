@@ -1,0 +1,39 @@
+---
+title: "The Local LLM Delusion"
+description: "The current obsession with running massive models locally is a distraction. I see engineers bragging about their hardware specs, their liquid-cooled rigs, and their massive VRAM allocations as if they"
+publishedAt: 2026-05-11
+tags: ["ai", "llm", "softwareengineering", "productivity", "webdev"]
+coverUrl: "https://raw.githubusercontent.com/Ajay-Kandakatla/ajaykandakatla-dev/main/public/covers/af13932c7b21.png"
+coverAlt: "A high-end workstation with glowing internal components sits in a dimly lit room, contrasted against a distant, ethereal beam of pure white light cutting through the shadows, cinematic, moody, 35mm."
+crossPost:
+  hashnode: false
+  substack: false
+  devto: false
+---
+The current obsession with running massive models locally is a distraction. I see engineers bragging about their hardware specs, their liquid-cooled rigs, and their massive VRAM allocations as if they are achieving some technical milestone. They aren't. They are just playing house with high-end silicon.
+
+I own a machine with 128GB of RAM and an M5. I have the overhead to run Qwen 2.5 and other top-tier open-weights models without breaking a sweat. I have put them through the ringer, testing their ability to navigate complex codebases and handle multi-step automations. The verdict is always the same: they are nowhere near Claude Code.
+
+## The Precision Gap
+
+The difference isn't just about parameter count; it is about reasoning density. When I use Claude Code, the experience is characterized by a sense of reliability that local models simply cannot replicate. Claude understands context not just as a window of text, but as a functional map of the project.
+
+Local models suffer from a specific kind of "hallucination drift." They start a task with decent logic, but as the context grows or the file structure becomes more intricate, their reasoning begins to fray. They suggest imports that don't exist or apply patches that break downstream dependencies. Claude Code is hands down more accurate and, for all intents and purposes, fail-proof in my daily workflow. It doesn't just suggest code; it understands the implications of that code within the existing architecture.
+
+## Automation and Agency
+
+The real test of an AI coding agent isn't writing a single function; it is the ability to execute complex, multi-file automations. This is where the local LLM experiment completely falls apart.
+
+When I task Claude Code with an automation—refactoring a pattern across a dozen files or updating a dependency and fixing the resulting breaking changes—it executes with surgical precision. It handles the "loops" of agentic behavior without getting stuck in a logic spiral. 
+
+Local models struggle with the agency required for this. They lack the "grip" on the task. They get lost in the weeds of the terminal output or fail to realize they have already attempted a solution that didn't work. To build an agentic workflow locally, you spend more time fighting the model's limitations than you do actually building software.
+
+## Hardware is Not a Proxy for Intelligence
+
+There is a pervasive myth in the developer community that more RAM equals better coding. If you have enough memory to load a 70B model, you are supposedly "empowered." This is false.
+
+Raw compute and memory capacity are just the plumbing. Intelligence is the water. You can have the most sophisticated plumbing in the world, but if the water is murky, you aren't getting anything useful out of it. My 128GB machine provides a massive amount of plumbing, yet Qwen still fails to match the reasoning capabilities of Claude. 
+
+Stop optimizing your local inference engines and start focusing on the quality of the intelligence you are actually using. The goal is to ship code, not to host a local museum for weights and biases.
+
+If you are still trying to convince yourself that a local setup is "good enough" for professional-grade engineering, you are prioritizing vanity over velocity.
