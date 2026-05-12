@@ -1,0 +1,64 @@
+---
+title: "The Three Horsemen of Slow: SAFe, Microservices, and Microfrontends"
+description: "Twelve years inside enterprise software taught me that SAFe, microservices, and microfrontends are not coincidentally slow. They are designed to feel productive while displacing the work."
+publishedAt: 2026-05-12
+tags: ["softwareengineering", "architecture", "agile", "microservices", "frontend"]
+crossPost:
+  hashnode: true
+  substack: false
+  devto: true
+---
+
+I have spent twelve years inside enterprise software. The dominant trend across that decade is unambiguous: we have gotten slower. Not in our laptops, not in our pipelines, not in our deployments. In the speed at which a feature crosses the distance from someone's idea to a customer's screen.
+
+The interesting part isn't that we got slower. The interesting part is that we accomplished it while simultaneously announcing — in standups, in town halls, in keynotes — that we were getting faster. The proof was meant to be visible in our methodologies. We adopted Scrum. Then SAFe. We split our monoliths into microservices. We fragmented our frontends into microfrontends. Each of these moves was sold as a speed gain. None of them were.
+
+I want to argue that these three patterns — Scaled Agile Framework, microservices for non-Netflix-scale teams, and microfrontends in particular — are not coincidentally slow. They are designed to feel productive while displacing the actual work of building software with the performance of doing so. And I want to argue that there is a real escape: spec-driven development, finally made possible by AI.
+
+## The performance of agility
+
+SAFe is the apotheosis of enterprise process theater. It promises agility at scale. What it delivers is a labyrinth of artifacts: PI Planning sessions, ART syncs, Inspect & Adapt workshops, business epics, capabilities, features, stories, enablers, spikes — and a vocabulary of program-level constructs that no actual engineer asked for. The framework's own diagrams require both axes to be illegible to fit on a 4K monitor.
+
+I have watched four-day PI Planning events at companies you have heard of. Eighty engineers in a room. Yellow stickies. Confidence votes. Dependency arrows that look like a Jackson Pollock. The output of all of this is a quarter's worth of commitment, expressed in the language of "we believe we can land features X, Y, Z." Three weeks later, half of it is invalidated by something a customer said, or a regulator did, or a team learned. The artifact is discarded. The next PI Planning event is scheduled.
+
+If you described this loop to an outsider — "we spend four days a quarter producing a plan that we admit will be partially wrong, and we accept the cost of that planning as the price of doing business" — they would assume you were describing the cargo-culted remnants of an old waterfall culture. And they would be right.
+
+## Microservices: coordination tax disguised as decoupling
+
+The promise of microservices was that you could ship independently. Teams would own their service, develop autonomously, deploy on their own cadence, and never block each other. The reality is that what got distributed was not the work but the coordination. The same logic that previously lived in a function call now lives in a network call, with retries, with timeouts, with auth, with observability, with a contract that must be versioned, with a database that probably lives in a different schema, owned by a different team.
+
+You did not eliminate coupling. You made it invisible and called that progress.
+
+For an organization at Netflix scale, with hundreds of services and the operational maturity to maintain them, microservices are an honest tool. For an organization with three teams of eight engineers each, they are a permanent coordination overhead in exchange for a hypothetical scaling benefit that will never materialize. I have seen sprints derailed entirely by a feature that touches three services, each owned by a different team, each behind a different sprint plan, each tested in isolation, none tested together. The feature lands six weeks late because the integration was the actual feature.
+
+## Microfrontends: distributed monoliths with worse ergonomics
+
+If microservices distribute the backend coordination problem, microfrontends bring that same problem to the layer where users interact with your product. The promise is the same: each team owns its slice of the UI, deploys independently, picks its own framework. The reality is the same as well — except now the failure modes are visible to the customer in their browser tab.
+
+You will find me sitting in front of a screen where a button rendered by one team's bundle does not communicate state to a panel rendered by another team's bundle, because both teams shipped React but at different major versions, and the state shape they share has drifted. You will find me reading a Module Federation runtime error that is undebuggable across teams because the bundles were never built together. You will find me explaining to a product manager why "just add a banner at the top of the page" requires coordination across four squads, three platform leads, and a release train.
+
+This is not a faster way to ship. This is the architectural diagram of a Tuesday afternoon meeting that should have lasted six minutes.
+
+## The escape hatch: spec first, then everything else
+
+The pattern underneath all three failures is the same. Each of them tries to manage coordination by adding more structure to the human process. PI Planning is coordination at the people layer. Microservices is coordination at the code layer. Microfrontends is coordination at the deployment layer. The structure compounds. The work does not.
+
+Spec-driven development is the inversion. You write the contract first — the API shape, the data model, the user-visible behavior — in a form that is machine-readable. Then you let everything else flow from the spec. The backend implementation. The frontend integration. The tests. The mock servers. The TypeScript types. The documentation. Each of these is a derivative of the spec, and each is regenerable.
+
+For ten years, "spec-driven development" was a marketing phrase used to sell OpenAPI tooling. The promise existed; the labor of actually generating implementations from specs was so painful that nobody did it past the first endpoint. AI changes the labor cost. With Claude Code or a similar agent, the spec becomes the unit of work, and the implementation falls out of it in minutes, with tests, in a form that is good enough to refine rather than rewrite.
+
+The reason this matters for the SAFe / microservice / microfrontend critique is that spec-driven development makes the question of *where the code runs* far less important than *what contract it honors*. A team can own a spec. Two teams can share a spec. The implementation can be in one service or four, in one bundle or three, and as long as the spec is the source of truth, the coordination cost is paid once at the spec, not continuously at every integration point.
+
+This also rearranges the conversation about scale. SAFe exists because executives need a sense of plan visibility across thousands of engineers. Microservices exist because teams need autonomy. Microfrontends exist because product wants ownership at the page level. All three of those needs are real. None of them require the architectures we built to address them. A shared spec, owned by the people responsible for the contract, gives you visibility, autonomy, and ownership without the coordination tax.
+
+## What I actually believe
+
+I believe SAFe is a control structure for executives that has been mistaken for a development methodology.
+
+I believe microservices were invented to solve a problem your organization does not have.
+
+I believe microfrontends are the architectural equivalent of trying to drive faster by adding more steering wheels.
+
+I believe spec-driven development is the only honest path forward for teams that are willing to write down what they actually mean, in a form a machine can read, and let the implementation be a generated artifact rather than a precious one.
+
+If you find yourself in a planning session this quarter, watching eighty people argue about whether a feature is a 3 or a 5, ask yourself who is being served by the argument.

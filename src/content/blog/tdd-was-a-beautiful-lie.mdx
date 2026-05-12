@@ -1,0 +1,56 @@
+---
+title: "TDD Was a Beautiful Lie. AI Just Made It True."
+description: "For twelve years I claimed to practice TDD. I was lying. So was almost everyone I worked with. AI just made it real for the first time."
+publishedAt: 2026-05-12
+tags: ["testing", "tdd", "ai", "softwareengineering", "productivity"]
+crossPost:
+  hashnode: true
+  substack: false
+  devto: true
+---
+
+A confession to open with. For twelve years of writing software professionally, I have claimed to practice test-driven development. The claim was a partial truth at best and a deliberate fiction at worst. I did not write tests first. Almost no one I have worked with did either.
+
+I want to walk through what happened, because the story is not that I am weak-willed or that my engineering culture was lazy. The story is that TDD as it was originally taught was conceptually beautiful and operationally impossible for the human attention budget. And the story has a twist: it just became possible. Not because we figured out a better way to discipline ourselves. Because we offloaded the discipline to a tool that does not get tired.
+
+## What TDD asked of you
+
+The TDD loop is famous in the abstract: write a failing test, write the minimum code to pass it, refactor with the test as a safety net, repeat. Three steps. Red, green, refactor. The cadence is supposed to be fast — minutes per cycle. The benefit is supposed to be a codebase that is, by construction, fully covered, designed for testability, and shaped by its tests rather than retrofitted with them.
+
+The problem is that the first step of the loop requires a thing that humans are bad at: knowing the API surface of code that does not yet exist. When you sit down to write the failing test for a function you have not built, you do not yet know what its inputs should be, what its return type should be, how it should be split, what its dependencies will be, what the error cases are. You are testing imagination, and imagination is shaped by the activity of actually writing the implementation. The test you write before the code is rarely the test you would write after the code, because the act of writing the code teaches you what the code should be tested against.
+
+So what actually happened, on most teams, is that engineers wrote the test and the implementation in the same session, in some interleaved order, then committed both together and claimed the order in retrospect. This is what I always did. This is what almost every engineer I have worked with did. We called it TDD because the test existed at the point of merge. We did not call it TDD-shaped because that would have been admitting that the discipline had collapsed.
+
+## The honest version: regression-driven development
+
+For most of my career, the actual practice that I and my teams followed was something closer to regression-driven development. We wrote code. We wrote tests for the code we wrote. The tests served their real purpose, which was to prevent us from breaking the behavior on the next refactor. They did not shape design. They did not catch bugs the implementation did not anticipate. They were a contract with our future selves, signed at the moment we already knew what we meant.
+
+This is fine. Regression coverage is valuable. But it is not TDD. It is not the discipline Kent Beck wrote a book about. It is a softer practice that we adopted because the original was too expensive for human attention.
+
+The distinction is not small. The reason real TDD was supposed to matter is that the test-first cadence forces design choices early. You cannot write a clean test for a function with eight arguments and four side effects, so you do not build a function like that. You cannot write a clean test for a class with hidden state, so you avoid hidden state. The discipline of the test, applied at the right moment, was supposed to shape the architecture. Regression tests do not do this. They accept the architecture that was already built and protect it from future damage.
+
+For a decade, I rationalized the gap. I would say things like "TDD is more of a mindset" or "the spirit of TDD is what matters." These were excuses dressed as wisdom.
+
+## What AI changes
+
+I have an M5 with 128GB of unified memory and a steady relationship with Claude Code. The loop I actually run now, when I am building anything non-trivial, looks like this:
+
+I describe the behavior in plain English to Claude. Sometimes a paragraph, sometimes a page. The description includes inputs, outputs, edge cases, and the interfaces it should integrate with. Claude writes the tests first. I read the tests, modify them, add cases. Claude writes the implementation. The tests fail. Claude iterates on the implementation until they pass. I read the implementation, change what I want to change, and commit.
+
+This is the TDD loop, executed in minutes per feature, without the cognitive cost that made it impossible by hand. The reason it works is that the tedious labor — typing out a test for an API that does not exist yet, then mentally context-switching to write the implementation, then context-switching back to verify the test still asserts the right thing — is offloaded to an agent that does not lose focus. The architecture-shaping effect of test-first is preserved because the test is genuinely written before the implementation. The implementation is shaped by the test, not the other way around. The benefit Beck described is finally available.
+
+The interesting consequence is that the code that comes out of this loop is differently shaped from the code I used to write. It is more decomposed. Functions are smaller because Claude was forced to write a test that asserted on each unit. State is more explicit because Claude could not write a useful test against hidden state. The test files are larger relative to the implementation, which is a sign of healthier coverage. None of this is because I got more disciplined. It is because the discipline became cheap.
+
+## What this means for hiring, mentorship, and culture
+
+I think about three implications.
+
+The first is that we should stop telling junior engineers that they need to internalize a discipline that the industry was, in practice, faking. Tell them the truth. Tell them that the original TDD loop was correct in spirit and prohibitive in cost, and that the cost has fallen, and that they should learn the new cadence rather than the old guilt.
+
+The second is that code reviews are about to shift. The signal "did the author write a test for this" used to be a check on professional conduct. Soon it will be a check on whether the author bothered to engage the tool that writes tests for free. The interesting review question becomes: did the test actually constrain the implementation, or did it merely confirm it?
+
+The third is that the architectural benefit of test-first is suddenly available to organizations that had given up on it. The teams that wanted clean, decomposed, test-shaped code but could not afford the human time to enforce it can have it now, by adopting the agent-led loop. The teams that pretended to do TDD can stop pretending.
+
+I sometimes wonder how much of the last decade of software architecture decay — the deep-coupled services, the god classes, the implicit state — was downstream of a discipline we publicly claimed to honor and privately could not afford. The pretense was the cost. We will know in a few years whether removing it was worth it.
+
+Did we ever actually want test-driven development, or did we want the feeling of being the kind of engineer who did it?
