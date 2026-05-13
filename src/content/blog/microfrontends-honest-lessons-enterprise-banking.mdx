@@ -1,0 +1,104 @@
+---
+title: "Microfrontends in the Real World: Five Lessons from Enterprise Banking"
+description: "I led the microfrontend strategy at a top-10 US bank. Five years later, I can tell you exactly which lessons held up and which ones I now think were dressed-up monolith problems. This is the case study that made me write The Three Horsemen of Slow."
+publishedAt: 2026-05-12
+tags: ["microfrontends", "architecture", "frontend", "softwareengineering", "react", "ajaykandakatla"]
+coverUrl: "https://image.pollinations.ai/prompt/A%20fragmented%20stained%20glass%20cathedral%20window%20depicting%20a%20banking%20building%2C%20each%20pane%20a%20slightly%20different%20color%20and%20era%20of%20technology%2C%20warm%20amber%20backlight%2C%20cinematic%2C%2035mm%20photography%2C%20moody?width=1200&height=630&model=flux&nologo=true&seed=506114"
+coverAlt: "A fragmented stained-glass cathedral window depicting a banking building — each pane a slightly different color and era of technology, illustrating the patchwork of microfrontend ownership"
+crossPost:
+  hashnode: true
+  substack: false
+  devto: true
+---
+
+I have a sister post on this site called "[The Three Horsemen of Slow](/blog/the-three-horsemen-of-slow/)" where I argue microfrontends are an architectural mistake for most teams. I want to be honest about how I arrived at that view, because I did not start there. I started as a true believer. I led the microfrontend strategy at a top-10 US bank for several years, scaled it across eight teams, and shipped it to millions of customers.
+
+The post below is the case study. The lessons are real. They held up. What I did not realize while writing the original version of these lessons is that they were lessons in *how to recover from a wrong architectural commitment* rather than lessons in *how to build microfrontends well*. The five things I learned were the five things I had to put in place to keep the system from collapsing.
+
+I will walk you through them in order. You can decide for yourself whether you are reading a microfrontend success story or a microfrontend warning written by someone who got close enough to call.
+
+## What microfrontends were supposed to fix
+
+The problem was real. A single React monolith that had grown to a hundred and twenty engineers contributing to it over six years. Deploys were risky. Regression cycles were three days. A small change to the navigation could require coordination across four product squads. The Tuesday release meeting had thirty people in it.
+
+The architectural pitch was sound: split the UI into domain-owned slices, each with its own deploy pipeline. Profile owns the profile UI. Card Management owns activate-replace-lost-stolen. Payments owns payments. Rewards owns rewards. Each team's blast radius shrinks. Each team's velocity goes up. The Tuesday release meeting goes away.
+
+This pitch made sense on paper, and I would not have led the initiative if I did not believe it. The first eighteen months were everything I had hoped. Teams shipped on their own cadence. The monolith fragmented into a dozen npm-packaged MFEs. The release meeting did, briefly, go away.
+
+Then the lessons started.
+
+## Lesson 1: Independence in code is not independence in deployment
+
+We packaged each MFE as a versioned npm module — `@banking/profile-mfe`, `@banking/card-mfe`, `@banking/payments-mfe`. The host shell imported them at build time. We deliberately rejected Webpack Module Federation because runtime coupling is a special kind of operational nightmare.
+
+The packaging worked. The deployment did not.
+
+Every time an MFE shipped a new version, the shell had to bump its dependency and re-deploy. So even though "Profile shipped independently," what actually happened was: Profile shipped, then the shell shipped to pick up Profile, then everyone else's MFE rode the shell's deploy, then we waited for QA on the integrated bundle. The shell became a serializing bottleneck. The release meeting came back, just with different vocabulary.
+
+This is the lesson everyone learns and nobody publishes: the shell is the new monolith. You can call it a host. You can call it a container. You can call it a runtime composition layer. What you cannot do is make it not exist, and what you cannot do is make its deploys not gate the deploys of every MFE downstream of it.
+
+We patched this with elaborate semantic-versioning policies, with side-by-side hosts running different MFE versions during transitions, with feature flags layered on top of feature flags. The patches worked. The shell never stopped being a bottleneck.
+
+## Lesson 2: After ten MFEs, you need a platform team — and you needed it before MFE one
+
+Once we had ten MFEs in production, the divergence started. Profile and Card both built loading spinners, slightly different. Both wrote their own auth-token refresh logic, slightly different. Both had their own utility for currency formatting. Both used a `Button` component, but the Profile button had a 12px corner radius and the Card button had a 8px corner radius and the design system did not specify which was right.
+
+The remedy was a UI platform team. They built:
+
+- A shared core library of components every MFE consumed.
+- Design system tokens that enforced consistency at the CSS-variable level.
+- A governance document specifying what could and could not be duplicated.
+- Architecture review checkpoints on every new MFE proposal.
+- Linting rules and TypeScript types that enforced the shared contract.
+- Cypress contract-testing guidelines so MFEs could test their boundaries.
+
+The platform team was four engineers full-time. It existed because the MFE architecture had created the problem it was now solving. If we had built a careful, well-modularized monolith with strong internal package boundaries, we would not have needed it. We needed it because we had fragmented the codebase into pieces that no longer naturally agreed with each other, and we had to import the agreement back as policy.
+
+Here is the part I did not write in the original Medium version: *the platform team was the actual architecture*. The MFEs were just the units they governed. You can replicate eighty percent of the value of microfrontends by establishing a UI platform team inside a monolith with strict module boundaries. You will save a vast amount of operational complexity and you will get most of the autonomy benefits.
+
+## Lesson 3: Distributed code, centralized test strategy
+
+When we migrated from Selenium to Cypress, the QA story got dramatically better. Component testing. Easy API mocking. Parallel runs. Predictable assertions. Reasonable test stability.
+
+What we did not get for free was a coherent test strategy across MFEs. Each team wrote their own auth fixtures. Each team mocked the payments API in slightly different ways. Each team had a different idea of what "a passing test" meant. The regression suite was the sum of these decisions and it ran for six hours.
+
+The fix was centralizing the *strategy* without centralizing the *execution*. The platform team owned the shared auth fixtures, the canonical API mocks, the contract-testing tooling, the test environment definitions. Each MFE owned its own test files but consumed the shared building blocks. Regression dropped from six hours to about ninety minutes.
+
+The principle generalizes: distributed code does not mean distributed everything. The things that benefit from centralization — strategy, contracts, conventions — should be centralized loudly and on purpose. The things that benefit from distribution — feature ownership, deployment pipelines, on-call rotation — should be distributed cleanly. Microfrontend architectures fail when teams treat distribution as a default rather than a choice.
+
+## Lesson 4: Never let MFEs share state. Ever.
+
+This was the closest thing to a bright line we drew. No MFE could import another MFE's state. No MFE could read another MFE's React context. No MFE could mutate state outside its own boundary.
+
+The reason was simple: every time two MFEs shared state, they stopped being two MFEs and became one MFE with a worse build process. The dependency was invisible in the bundle graph but real in the runtime, and it always showed up at the worst possible moment — usually a state-shape mismatch after one team upgraded React and the other had not.
+
+Cross-MFE communication had to go through events on a shared bus, or through API calls to the backend. Both were higher friction than a shared context. That friction was a feature. Every time a developer found themselves wishing they could just import the Card MFE's state from the Payments MFE, that wish was a signal that the two MFEs were modeling the same domain and should probably have been a single MFE.
+
+I cannot count the number of bugs we shipped because someone violated this rule. I can count the number of times I was glad we had drawn the line: every time.
+
+## Lesson 5: Culture decides whether MFEs work. Not architecture.
+
+The single most important variable in whether our microfrontend program worked was not the technical decisions. It was whether the eight teams agreed that the boundaries were real.
+
+The teams that bought in shipped well. The teams that did not buy in spent every architecture review trying to negotiate exceptions, every retrospective trying to relitigate why the boundary existed, every release window discovering that they had quietly created a dependency on someone else's code without telling them. The architecture was identical for both groups. The outcomes were not.
+
+This is the lesson I find hardest to teach to a team starting their own MFE journey. They want a technical answer. The technical answer is necessary but not sufficient. The sufficient answer is: do your teams want to own their slice of the UI, including the parts of the slice they do not enjoy, or do they want to keep negotiating the boundary?
+
+If the second, no architecture is going to save you. If the first, almost any architecture will work.
+
+## What I now believe
+
+I led this program. I shipped it. I am proud of what it accomplished. And I now believe that for most organizations — including most banks — the better answer would have been a careful monolith with strong package boundaries, a UI platform team, and an opinionated test strategy. We would have gotten eighty percent of the autonomy benefit at twenty percent of the operational cost.
+
+Microfrontends are a scaling strategy. They are not a default. They make sense when:
+
+- You have at least eight independent product teams.
+- Each team has a domain boundary nobody disputes.
+- Your release cadence is fundamentally team-by-team, not company-by-company.
+- You have the operational maturity to run a platform team alongside them.
+
+If any of those four are missing, you are taking on a coordination tax for a benefit you will not collect.
+
+The five lessons above are real, and they will hold. They will hold whether you adopt microfrontends or stop short of them. The thing the lessons taught me — slowly, expensively, across several years — is that the boundaries that matter are organizational, not technical. The MFE was the vehicle. The platform team was the engine. The team culture was the road.
+
+If you take one thing from this post, take the question I now ask of every team that proposes a microfrontend: *what would it cost to get the same benefit by building a careful monolith?* If the answer is "less than this," you have your answer.

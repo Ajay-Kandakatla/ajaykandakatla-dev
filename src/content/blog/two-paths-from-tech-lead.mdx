@@ -1,0 +1,78 @@
+---
+title: "Two Paths from Tech Lead: Engineering Manager or Architect Manager"
+description: "Most senior engineers don't realize they're standing at a fork in the road until they've already walked one path for two years. I walked both. Here's what the choice actually costs."
+publishedAt: 2026-05-12
+tags: ["leadership", "careergrowth", "engineeringmanagement", "architecture", "softwareengineering", "ajaykandakatla"]
+coverUrl: "https://image.pollinations.ai/prompt/A%20single%20figure%20standing%20at%20a%20forest%20fork%20at%20dawn%2C%20two%20stone%20paths%20diverging%20into%20mist%2C%20one%20path%20paved%20with%20circuit%20traces%20and%20one%20with%20architectural%20blueprints%2C%20cinematic%20wide%20shot%2C%20warm%20golden%20light%2C%2035mm%20photography%2C%20moody?width=1200&height=630&model=flux&nologo=true&seed=204815"
+coverAlt: "A solitary figure standing at a forest fork at dawn, two stone paths diverging into mist — one paved with circuit traces, the other with architectural blueprints"
+crossPost:
+  hashnode: true
+  substack: false
+  devto: true
+---
+
+When I stepped into my first Tech Lead role, I did not realize I was standing at a fork in the road. The fork is invisible until you have already walked one of the two paths for about two years. By then it is too late to choose strategically — you can only choose to keep walking or to backtrack.
+
+The two paths are Engineering Management and Architecture. Both lead to Director-level positions if you walk them well. Both pay roughly the same in the early years. Both get you on the same all-hands stages, the same skip-level meetings, the same calendar of escalations. The roles look interchangeable from the outside, which is why most senior engineers default into the first one they get offered and assume they have made a real decision.
+
+They have not. I have walked both paths, in that order, and I want to write down what I learned about what the choice actually costs.
+
+## What the engineering manager actually owns
+
+I spent three and a half years as an Engineering Manager. The job description said I would lead five teams: a Tech Lead, a Dev Lead, and four individual contributors per team — about thirty engineers total. The job description was honest about the headcount and misleading about the work.
+
+The actual work, broken down by where my calendar time went, was roughly 60% people and 40% technology. Coaching Tech Leads on how to give feedback to their seniors. Coaching Dev Leads on how to push back on unreasonable scope. Removing blockers that turned out to be inter-team political disagreements wearing the costume of technical disagreements. Sprint health, retrospective health, OKR health, attrition risk, performance management, hiring loops, calibration cycles.
+
+The technology I touched in that period was real but downstream. Code reviews, but mostly to mentor rather than to evaluate. Architecture conversations, but only after Product and Architecture had already chosen the shape of the thing. Production incidents, but I was running the comms loop, not the debug loop.
+
+If you measure the leverage of an Engineering Manager by what would change in the world if I worked twice as hard for a year, the answer is: my teams would ship slightly more, the engineers would grow slightly faster, and the org would be slightly happier with me at my next calibration. The system that those teams operated inside — the architecture, the platform choices, the technical direction — would be untouched, because that system was not mine to move.
+
+This is not a complaint. The role is real and necessary. But its leverage is on the people layer, not the system layer.
+
+## What the architect manager actually owns
+
+The transition to Architect Manager was disorienting. Same building, similar title, completely different job.
+
+I influence eight teams now, not five. I am in the room earlier — at the very beginning of every initiative, when Product is still trying to figure out what the problem even is. The conversations are about whether to build a thing, what tradeoffs the thing locks in for the next three years, whether the data model can support the next two products, what the platform implications are of saying yes to this customer request. My leverage is not on the people doing the work. It is on the choice of what work gets done and how it gets shaped.
+
+The math of this is brutal once you see it. As an Engineering Manager, my best month produced maybe a 10% delivery boost across thirty engineers — call it three engineer-months of additional output. As an Architect Manager, a single early decision can save or cost three engineer-*years*. The first time I killed a feature in discovery because the data model could not support it without a rewrite, I saved more engineer-time than I generated in a quarter of management.
+
+The trade is that I do almost no people work. I do not run 1:1s with the engineers building the thing. I do not own anyone's promotion case. I am closer to a product manager than a manager-of-engineers, in terms of where my day actually goes. Some people will hate that.
+
+## The fork is about timing, not seniority
+
+The mistake I made — and that most senior engineers make — is treating the two paths as a question of "do I want to be more technical or more people-y." That is not the choice. Both paths require both. The actual choice is when you want to be in the conversation.
+
+Engineering Management is post-discovery. The problem is defined. The solution shape is mostly set. Your job is to make sure the team executes well against a thing that has already been chosen.
+
+Architecture is pre-discovery. The problem is barely a problem yet. Nothing is defined. Your job is to influence what gets defined, what gets ruled out, what shape the next two years take.
+
+If you are the kind of person who enjoys watching a plan come together — making a team move smoothly through a sprint, coaching someone through their first staff-level escalation, removing the seventeenth flavor of organizational friction — Engineering Management is the path with the leverage you want.
+
+If you are the kind of person who is restless about being the third person consulted on a question that someone else already framed wrong — who wants to be in the room when the problem itself is being defined, before the solution shape locks in — Architecture is the path with the leverage you want.
+
+Both are legitimate. They are not equivalent.
+
+## Why most people pick wrong
+
+The default pick is Engineering Management. It is the more visible promotion. It comes with headcount, which is a status signal inside every company I have worked at. It has a more legible scope ("I run a team of thirty") versus Architecture ("I shape what eight teams build, though my name is on nothing they ship").
+
+The result is that a large fraction of people who would have been excellent architects spend three to five years as middling Engineering Managers, mostly miserable, before either burning out or zigzagging back to a senior IC role and never recovering the architecture path they could have walked from the start.
+
+If your favorite part of your Tech Lead role was the moment when the team was unblocked and humming, you should go into Engineering Management.
+
+If your favorite part of your Tech Lead role was the design doc that killed a bad feature before it was built, you should go into Architecture.
+
+Pick on the leverage you find satisfying, not on the headcount you can put in your LinkedIn title.
+
+## What walking both paths taught me
+
+The dual experience made me better at both. As an Architect, I now understand exactly which architectural choices an Engineering Manager will quietly resent — the ones that look elegant on paper but slow execution in ways that show up in retros six months later, when nobody remembers it was the architect's call.
+
+As an Engineering Manager, I learned which architectural arguments are real and which are decoration — which of the diagrams in the design doc actually constrain the implementation, and which are aspirational drawings the team will work around quietly.
+
+I am not arguing that everyone should walk both. The cost is high; you give up two to three years of compounding in either path to make the switch. I am arguing that you should be deliberate about which one you walk first.
+
+The Tech Leads I mentor now get asked one question before they accept a manager track or an architect track offer: which of the two roles, on the worst day of the worst quarter, would you be okay still doing?
+
+Pick that one. The good days will take care of themselves.

@@ -1,0 +1,70 @@
+---
+title: "Four Apps in Five Days with Claude Code — What Actually Changed"
+description: "Five days. Four shipped applications. A portfolio, an architecture builder, a credit servicing platform, a kids' drawing app. The interesting part is not what got built. It's what stopped blocking me."
+publishedAt: 2026-05-12
+tags: ["claudecode", "ai", "productivity", "softwareengineering", "frontend", "ajaykandakatla"]
+coverUrl: "https://image.pollinations.ai/prompt/Four%20distinct%20glowing%20application%20windows%20floating%20in%20the%20dark%20above%20an%20open%20laptop%2C%20warm%20amber%20light%2C%20cinematic%20composition%2C%20clean%20minimalist%2035mm%20photography%2C%20moody?width=1200&height=630&model=flux&nologo=true&seed=918274"
+coverAlt: "Four distinct glowing application windows floating above an open laptop in warm amber light — the velocity of AI-assisted side projects"
+crossPost:
+  hashnode: true
+  substack: false
+  devto: true
+---
+
+I have been building software for twelve years. Across that span, the gap between my list of "things I want to build" and "things I have actually shipped" has only grown. Not because I do not have time. Because the cost of shipping is not the part of the system everyone tells you it is. The hard part is not writing the code. The hard part is the unglamorous middle hundred yards — auth, deployment, the third-party dashboard you have to register with, the YAML file that does not work on the first try, the moment at 11pm where you realize your DNS still points at the old setup. That middle hundred yards has killed more of my side projects than any technical problem ever has.
+
+Last month I shipped four production applications in five days. Not prototypes. Not demos. Live URLs, with auth, with persistence, with monitoring, with deployments wired up to real CI. The interesting part is not the velocity. The interesting part is that the middle hundred yards finally stopped being expensive.
+
+I want to walk through what I built, what tech I picked, and — more importantly — what AI tooling changed about which parts of the work I had to do.
+
+## The four apps
+
+**Portfolio** ([ajay-kandakatla.github.io](https://ajay-kandakatla.github.io)) — an animated career narrative. Vanilla HTML/CSS/JS, canvas particle system in the hero, an interactive SVG map of the eight US cities I have worked in, animated skill bars, a physics-driven volleyball sim. Static site on GitHub Pages. Single file, 1,300 lines, no build step.
+
+**ArchFlow** ([archflow-production.up.railway.app](https://archflow-production.up.railway.app)) — an architecture diagram builder with drag-and-drop nodes, smart edge routing, auto-save, image uploads via GridFS, and an AI prompt panel that takes a system description and generates a draft diagram. React 19, TypeScript, Express, MongoDB Atlas, JWT auth, Google OAuth, Playwright for E2E. Deployed on Railway.
+
+**Nexus** ([nexus-platform1.vercel.app](https://nexus-platform1.vercel.app)) — a credit servicing platform demo with a plugin-based architecture, a financial-health dashboard, an AI co-pilot, a dispute wizard, and event-driven inter-module communication. React 19, TypeScript, Zustand, React Query, Framer Motion, Zod, Vitest, MSW for mocking. Vercel.
+
+**KidsDraw** ([kidsdraw-orcin.vercel.app](https://kidsdraw-orcin.vercel.app)) — a touch-optimized drawing app built for my daughter. Freehand drawing with Konva.js, reference-image search via the Pixabay API, a cloud-saved gallery on Supabase, full PWA support so it works offline on her iPad. React 19, TypeScript, Konva, Supabase, Zustand. Vercel.
+
+Five days. Four stacks. Zero of them existed when I sat down on a Monday morning.
+
+## What AI tooling changed (and what it did not)
+
+I want to be precise about this because the loose narrative — "AI made me 10x faster" — is wrong in both directions. AI did not make me 10x faster at writing code. The code part of building these apps was never the slow part. AI made me about 5x faster overall, and that 5x came from a specific place: the parts of the work I used to procrastinate on because they were tedious, finicky, and uncreative.
+
+Setting up auth. Wiring up a database client. Writing Cypress fixtures. Configuring a deployment target. Hunting down the right env var name in someone's docs. Building the initial scaffolding of a React project so the imports do not error out. Generating fifteen TypeScript types from a Mongo schema. Writing the third API endpoint that looks almost like the second one. None of this work is *hard*. All of it is the work that makes side projects die at minute forty-five.
+
+Claude Code ate that work. Not by doing it faster than I would have — the elapsed time per task is roughly comparable — but by doing it while I was thinking about the next thing, so the context switch never had to happen. I would describe a feature, switch tabs to think about the next feature, come back to find the first feature scaffolded with tests, refine the parts I cared about, ship.
+
+This loop is what changed. Not the velocity of any individual task. The fact that I could keep my attention on the parts of the problem that were actually interesting.
+
+## What it did not change
+
+Architecture decisions. Product decisions. The choice to use Zustand instead of Redux for Nexus, to use Konva instead of Fabric for KidsDraw, to use Node-module MFEs instead of Module Federation if I had been building MFEs. Those decisions are still mine, and they need to be — Claude Code will happily execute a bad architectural choice without telling me. The agent does not have taste about your specific product. It has taste about general patterns. The specific choices remain a human-level act of judgment.
+
+I also did not get faster at debugging the parts of the system that bite at the edges. The third party that returns 429s under load. The CORS preflight that succeeds in dev and fails in prod. The race condition in your auth flow that only shows up when the user has a stale token. These are the parts where I still spend hours, and where Claude is a useful sounding board but not a shortcut.
+
+If you cannot diagnose a system, you cannot accelerate it by adding an AI to the bottom of the stack. The diagnosis is the work.
+
+## What it means for what a side project is
+
+A side project used to be something I would seed on a weekend, abandon by the next Friday, and feel mild guilt about for three months. The cost of finishing was so much higher than the cost of starting that almost nothing made it through. The graveyard of half-built side projects on my GitHub account is, I would estimate, fifty deep across my career.
+
+The economics changed. A side project is now something I can take from idea to live URL in a day or two of evening time. Which means the bar for whether an idea is "worth starting" has fallen, because the failure mode is no longer "wasted forty hours of work." It is "spent four hours, learned something, killed it." That is a completely different decision.
+
+Some implications I am still working through.
+
+The portfolio of side projects matters more, not less. Each app you ship teaches you something the next one will need. The skills compound. The friction does not.
+
+The hiring signal of "this person built thing X on the side" gets weaker, because building thing X got easier. The hiring signal of "this person had an opinion about thing X that turned out to be right" gets stronger, because opinions are still bottlenecked by experience and taste.
+
+The kinds of apps worth building shift. Not the big serious ones — those still need teams, capital, distribution. The category that benefits most is the personal one. KidsDraw exists because I have a four-year-old who likes to draw and I wanted to make her something specific to her. The economics of "build a custom app for one person" only work when the cost of the build is in single-digit hours, and now it is.
+
+## What I would tell my twelve-years-younger self
+
+If you had told the Junior Engineer me, sitting in his first cubicle at Orbit Healthcare in New Jersey in 2015, that he would one day write the description of a credit servicing platform in plain English at his kitchen table on a Tuesday night and watch the implementation appear over the course of the evening, he would not have believed it. And he would have spent the next decade preparing for a different career than the one that arrived.
+
+The skill that compounds the most over the next ten years is not "I can write code." Code is becoming cheap. The skill that compounds is "I can decide which thing to build, and I can tell when the thing being built is wrong."
+
+The most valuable thing I learned in twelve years of writing software is what *not* to write. That instinct is what Claude does not have. That instinct is what you should be sharpening, while the agent handles the typing.
