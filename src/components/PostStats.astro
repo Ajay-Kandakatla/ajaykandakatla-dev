@@ -1,0 +1,136 @@
+---
+/**
+ * Views + likes counter, backed by Supabase.
+ *
+ * Pure Astro/vanilla-JS — no React, no hydration overhead.
+ * On page load: increments view count, fetches current view + like totals.
+ * On like click: increments likes (deduped per-browser via localStorage).
+ *
+ * Requires two env vars at build time:
+ *   PUBLIC_SUPABASE_URL  — https://<project>.supabase.co
+ *   PUBLIC_SUPABASE_ANON — anon key from Supabase project settings
+ *
+ * Without these, the component renders a graceful empty state.
+ *
+ * Backing Postgres functions live in supabase/schema.sql.
+ */
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnon = import.meta.env.PUBLIC_SUPABASE_ANON ?? '';
+const enabled = Boolean(supabaseUrl && supabaseAnon);
+---
+
+{enabled && (
+  <div class="post-stats mt-12 pt-6 border-t border-zinc-800 flex items-center gap-6 text-sm text-zinc-400"
+       data-slug={slug}
+       data-supabase-url={supabaseUrl}
+       data-supabase-anon={supabaseAnon}>
+    <div class="flex items-center gap-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <span class="views">—</span>
+    </div>
+    <button type="button" class="like-btn flex items-center gap-2 hover:text-pink-400 transition-colors" aria-label="Like this post">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+      <span class="likes">—</span>
+    </button>
+  </div>
+)}
+
+<script>
+  type PostStatsRow = { slug: string; views: number; likes: number };
+
+  function rpcHeaders(anon: string): HeadersInit {
+    return {
+      apikey: anon,
+      Authorization: `Bearer ${anon}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    };
+  }
+
+  async function callRpc(url: string, anon: string, fn: string, slug: string): Promise<PostStatsRow | null> {
+    try {
+      const res = await fetch(`${url}/rest/v1/rpc/${fn}`, {
+        method: 'POST',
+        headers: rpcHeaders(anon),
+        body: JSON.stringify({ post_slug: slug }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      // Supabase RPC returns the row or an array of one row depending on version
+      if (Array.isArray(data)) return data[0] ?? null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  async function init() {
+    const el = document.querySelector<HTMLElement>('.post-stats');
+    if (!el) return;
+
+    const slug = el.dataset.slug!;
+    const supabaseUrl = el.dataset.supabaseUrl!;
+    const supabaseAnon = el.dataset.supabaseAnon!;
+    const likeBtn = el.querySelector<HTMLButtonElement>('.like-btn');
+    const viewsEl = el.querySelector<HTMLElement>('.views');
+    const likesEl = el.querySelector<HTMLElement>('.likes');
+
+    // Dedupe view counts within a session — don't double-count on refresh
+    const VIEW_KEY = `viewed:${slug}`;
+    const LIKE_KEY = `liked:${slug}`;
+
+    let row: PostStatsRow | null;
+    if (sessionStorage.getItem(VIEW_KEY)) {
+      // Already counted this session — just read current totals
+      try {
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/post_stats?slug=eq.${encodeURIComponent(slug)}&select=slug,views,likes`,
+          { headers: { apikey: supabaseAnon, Authorization: `Bearer ${supabaseAnon}` } },
+        );
+        const data = await res.json();
+        row = Array.isArray(data) && data.length > 0 ? data[0] : { slug, views: 0, likes: 0 };
+      } catch {
+        row = null;
+      }
+    } else {
+      row = await callRpc(supabaseUrl, supabaseAnon, 'increment_view', slug);
+      sessionStorage.setItem(VIEW_KEY, '1');
+    }
+
+    if (row) {
+      if (viewsEl) viewsEl.textContent = String(row.views);
+      if (likesEl) likesEl.textContent = String(row.likes);
+    }
+
+    // Already liked? Disable + persist
+    if (localStorage.getItem(LIKE_KEY)) {
+      likeBtn?.setAttribute('disabled', 'true');
+      likeBtn?.classList.add('text-pink-400');
+      const icon = likeBtn?.querySelector<SVGElement>('.heart-icon');
+      icon?.setAttribute('fill', 'currentColor');
+    }
+
+    likeBtn?.addEventListener('click', async () => {
+      if (likeBtn.disabled) return;
+      likeBtn.disabled = true;
+      const updated = await callRpc(supabaseUrl, supabaseAnon, 'increment_like', slug);
+      if (updated && likesEl) likesEl.textContent = String(updated.likes);
+      likeBtn.classList.add('text-pink-400');
+      const icon = likeBtn.querySelector<SVGElement>('.heart-icon');
+      icon?.setAttribute('fill', 'currentColor');
+      localStorage.setItem(LIKE_KEY, '1');
+    });
+  }
+
+  init();
+</script>

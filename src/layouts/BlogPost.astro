@@ -1,5 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+import PostStats from '../components/PostStats.astro';
+import Comments from '../components/Comments.astro';
 import { topicSlug } from '../utils/topics';
 import type { CollectionEntry } from 'astro:content';
 
@@ -86,6 +88,7 @@ const jsonLd = {
     <div class="prose prose-invert prose-zinc mt-10 max-w-none">
       <slot />
     </div>
+    <PostStats slug={entry.slug} />
     {data.tags.length > 0 && (
       <footer class="mt-16 pt-8 border-t border-zinc-800">
         <p class="text-sm text-zinc-500">More on this site about</p>
@@ -104,5 +107,6 @@ const jsonLd = {
         </ul>
       </footer>
     )}
+    <Comments />
   </article>
 </BaseLayout>
