@@ -10,20 +10,43 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
   title="Blog — Ajay Kandakatla"
   description="Notes on software, systems, and shipping."
 >
-  <main class="mx-auto max-w-2xl px-6 py-12">
+  <main class="mx-auto max-w-3xl px-6 py-12">
     <h1 class="text-3xl font-bold tracking-tight">Blog</h1>
-    <ul class="mt-10 space-y-8">
-      {posts.map((post) => (
-        <li>
-          <a href={`/blog/${post.slug}/`} class="block group">
-            <p class="text-xs text-zinc-500 uppercase tracking-wide">
-              {post.data.publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
-            </p>
-            <h2 class="mt-1 text-xl font-semibold group-hover:underline underline-offset-4">{post.data.title}</h2>
-            <p class="mt-2 text-zinc-400 leading-relaxed">{post.data.description}</p>
-          </a>
-        </li>
-      ))}
+    <ul class="mt-10 space-y-10">
+      {posts.map((post) => {
+        const coverSrc = post.data.coverUrl ?? (post.data.cover ? post.data.cover.src : undefined);
+        return (
+          <li>
+            <a href={`/blog/${post.slug}/`} class="block group">
+              <div class="flex flex-col sm:flex-row gap-5">
+                {coverSrc ? (
+                  <div class="sm:w-48 sm:flex-shrink-0">
+                    <img
+                      src={coverSrc}
+                      alt={post.data.coverAlt ?? post.data.title}
+                      loading="lazy"
+                      class="w-full aspect-[16/9] sm:aspect-[4/3] object-cover rounded border border-zinc-800 group-hover:border-zinc-600 transition-colors"
+                    />
+                  </div>
+                ) : (
+                  <div class="sm:w-48 sm:flex-shrink-0 hidden sm:block">
+                    <div class="w-full aspect-[4/3] rounded border border-zinc-800 bg-zinc-900/40 flex items-center justify-center">
+                      <span class="text-xs text-zinc-700 uppercase tracking-wider">no cover</span>
+                    </div>
+                  </div>
+                )}
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-zinc-500 uppercase tracking-wide">
+                    {post.data.publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
+                  </p>
+                  <h2 class="mt-1 text-xl font-semibold group-hover:underline underline-offset-4">{post.data.title}</h2>
+                  <p class="mt-2 text-zinc-400 leading-relaxed">{post.data.description}</p>
+                </div>
+              </div>
+            </a>
+          </li>
+        );
+      })}
     </ul>
   </main>
 </BaseLayout>
